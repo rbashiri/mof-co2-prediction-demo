@@ -1,0 +1,49 @@
+# dataset files — kept on external drive, not in git
+data/
+*.cif
+*.json
+*.csv
+*.parquet
+
+# local Python environment, different on every machine, often large
+.venv/
+__pycache__/
+*.py[cod]
+
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/
+
+# environment variables / secrets — never commit these
+.env
+.env.*
+
+# packaging / build artifacts
+*.egg-info/
+dist/
+build/
+
+# pytest / coverage cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# OS junk files
+.DS_Store
+Thumbs.db
+
+# IDE folders
+.idea/
+.vscode/
+
+# MLflow tracking data (large, regenerated locally)
+mlruns/
+mlartifacts/
+
+# model artifacts and large results
+*.pkl
+*.joblib
+*.onnx
+*.skops
+results/models/
+results/
+
