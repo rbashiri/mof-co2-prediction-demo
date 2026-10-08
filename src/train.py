@@ -11,6 +11,7 @@ SHAP plots and scientific interpretation stay in the notebooks.
 
 import argparse
 import os
+from pathlib import Path
 
 import joblib
 import numpy as np
@@ -24,12 +25,14 @@ from xgboost import XGBRegressor
 
 SEED = 12345
 
-PHASE1_DATA_PATH = "/home/susan/mof-co2-adsorption/data/processed/data_clean_v2"
-PHASE2_DATA_PATH = "/home/susan/mof-co2-adsorption/data/processed/hmof_linker_extended_descriptors.csv"
-PHASE3_DATA_PATH = "/home/susan/mof-co2-adsorption/data/processed/hmof_phase3_structure_descriptors.csv"
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-RESULTS_DIR = "/home/susan/mof-co2-adsorption/results/modeling_results"
-MODELS_DIR = "/home/susan/mof-co2-adsorption/results/models"
+PHASE1_DATA_PATH = str(PROJECT_ROOT / "data" / "processed" / "data_clean_v2")
+PHASE2_DATA_PATH = str(PROJECT_ROOT / "data" / "processed" / "hmof_linker_extended_descriptors.csv")
+PHASE3_DATA_PATH = str(PROJECT_ROOT / "data" / "processed" / "hmof_phase3_structure_descriptors.csv")
+
+RESULTS_DIR = str(PROJECT_ROOT / "results" / "modeling_results")
+MODELS_DIR = str(PROJECT_ROOT / "results" / "models")
 
 GEOMETRY_COLUMNS = [
     "lcd",

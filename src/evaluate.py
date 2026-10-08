@@ -118,8 +118,11 @@ if __name__ == "__main__":
     # import pandas to load your cleaned dataset
     import pandas as pd
 
+    from pathlib import Path
+
     # load your combined structural + CO2 dataset
-    df = pd.read_csv("data/processed/hmof_clean.csv")
+    project_root = Path(__file__).resolve().parent.parent
+    df = pd.read_csv(project_root / "data" / "processed" / "hmof_clean.csv")
 
     feature_columns = ["lcd", "pld", "void_fraction", "surface_area_m2g"]
     target_columns = [
