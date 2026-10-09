@@ -15,9 +15,8 @@ mof-co2-prediction-demo/
 │   ├── PHASE3/
 │   └── linker_geometry_report.md
 ├── notebook/
-│   ├── phase_1/                          # Geometry-only baseline analysis
-│   ├── phase_2/                          # RDKit linker extraction and chemistry descriptors
-│   │   ├── rdkit_final_version.ipynb
+│   ├── phase 1/                          # Geometry-only baseline modeling and SHAP
+│   ├── phase_2/                          # Geometry + linker descriptor modeling
 │   │   └── geometry_linker_modeling.ipynb
 │   └── phase_3/                          # CIF matching, metal descriptors, controlled comparison
 │       ├── cif_matching_metal_descriptors.ipynb
