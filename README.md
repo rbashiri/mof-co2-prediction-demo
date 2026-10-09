@@ -1,7 +1,7 @@
 ## Project Structure
 
 ```text
-mof-co2-adsorption/
+mof-co2-prediction-demo/
 ├── .venv/                                # Virtual environment, not committed
 ├── configs/
 │   └── config.yaml
@@ -9,10 +9,10 @@ mof-co2-adsorption/
 │   ├── processed/                        # Cleaned and feature-engineered datasets
 │   └── raw/                              # Original hMOF JSON/CIF files, not committed
 ├── docs/
-│   ├── PROJECT_OBJECTIVES.md
-│   ├── MOF_Project_V1_Upgrade_Roadmap.md
-│   ├── PHASE3_3A.md
-│   ├── PHASE3_3B.md
+│   ├── project_objectives.md
+│   ├── SHAP_conceptual.md
+│   ├── PHASE_2_*.md
+│   ├── PHASE3/
 │   └── linker_geometry_report.md
 ├── notebook/
 │   ├── phase_1/                          # Geometry-only baseline analysis
@@ -25,9 +25,7 @@ mof-co2-adsorption/
 ├── src/
 │   ├── app.py                            # App or future model interface
 │   ├── evaluate.py                       # Model evaluation utilities
-│   ├── extract_linkers.py                # RDKit linker extraction from 
 │   ├── linker_descriptors.py             # Linker chemistry descriptor 
-│   ├── phase3_extract_metal_descriptors.py # CIF-based metal-node 
 │   ├── preprocess.py                     # Data cleaning and feature 
 │   └── train.py                          # Phases 1 +  2 + 3 training
         ├── Phase 1: geometry-only baseline
@@ -149,21 +147,8 @@ across all five pressure columns, not just one.
 ======================================================
 ## Data Cleaning Summary
 
-- Loaded the dataset and inspected its structure, including shape, columns, and sample records.
-- Standardized column names by removing extra whitespace, converting them to lowercase, and replacing spaces with underscores.
-- Identified and summarized missing values by column.
-- Reviewed rows with missing mofid values to assess data quality.
-- Checked for duplicate records and counted them.
-- Investigated rows with zero surface area and removed those with both zero surface area and missing mofid.
-- Rechecked the remaining missing values after filtering.
-- Explored potential outliers using descriptive statistics, boxplots, and the IQR method for key numeric features.
+The team works from the already cleaned dataset `data_clean_v2` (column names standardized, duplicates and zero-surface-area rows without a mofid removed). Cleaning is not repeated in this repository. hMOF entries with a null mofid were kept.
 
-Note: The remaining hMOF entries will be kept even though the mofid is null. No further action was taken on this decision.
-
-
-
-
-======================================================
 ## Feature and Target Selection
 
 The project uses structural properties to predict CO₂ uptake.
@@ -213,64 +198,3 @@ pressure; baseline estimators remain available for comparison.
 > **model-based feature importance** rather than assumed in advance.
 > Feature importance should be checked across all five pressure targets,
 > not just one, consistent with the approach in Wilmer et al. (2012).
-
-
-======================================================
-## Exploratory Data Analysis (EDA)
-
-EDA is performed before modeling to understand the structure of the data,
-confirm expected physical relationships, and identify any patterns that
-should inform modeling decisions.
-
-### EDA Priorities
-
-| Priority | Analysis | Purpose |
-|----------|----------|---------|
-| 1 | **Target distributions** | Compare the range, skewness, and zeros of CO₂ uptake at each pressure |
-| 2 | **Pearson and Spearman correlations** | Measure linear and monotonic feature–uptake relationships |
-| 3 | **Scatter / hexbin plots** | Identify nonlinear relationships and feature interactions |
-| 4 | **Feature-to-feature correlations** | Detect strongly related predictors such as `lcd` and `pld` |
-| 5 | **Outlier sensitivity** | Check whether flagged MOFs change the observed relationships |
-
-### EDA Order
-
-1. Examine the five CO₂ target distributions 
-2. Calculate Pearson and Spearman correlations
-3. Visualize the strongest feature–target relationships
-4. Compare results with and without flagged outliers
-5. Begin regression modeling and feature importance
-
----
-
-### Why This Order
-
-**Step 1** establishes whether the targets are normally distributed,
-heavily skewed, or contain zero-uptake MOFs — this affects which
-correlation method and model type is appropriate.
-
-**Step 2** uses two correlation methods intentionally:
-- **Pearson** measures linear relationships — appropriate if features and
-  targets scale proportionally.
-- **Spearman** measures monotonic relationships — more robust when
-  distributions are skewed or contain outliers, which is expected here
-  given the IQR results.
-
-**Step 3** visualizes the strongest correlations found in Step 3 to
-confirm whether relationships are truly linear or follow a nonlinear
-pattern — this informs whether a linear model or tree-based model is
-more suitable.
-
-**Step 4** repeats key correlations after removing the 619 low
-`void_fraction` outliers and 688 large `lcd` outliers to confirm that
-the observed relationships are not driven by extreme values.
-
-**Step 5** begins only after EDA is complete, so that model choice,
-feature scaling decisions, and interpretation of feature importance are
-all grounded in observed data patterns rather than assumed in advance.
-
-> This sequence is consistent with the analytical approach used in
-> Wilmer et al. (2012), where structural descriptors were evaluated
-> across multiple pressure regimes before drawing conclusions about
-> which features drive CO₂ adsorption.
-
-======================================================
