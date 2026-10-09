@@ -126,7 +126,9 @@ def split_dataframe(df, seed=SEED):
 
 def get_numeric_linker_columns(df):
     """Select numeric Phase 2 linker descriptor columns."""
-    excluded_columns = set(GEOMETRY_COLUMNS + TARGET_COLUMNS)
+    excluded_columns = set(
+        GEOMETRY_COLUMNS + TARGET_COLUMNS + PHASE3_DESCRIPTOR_COLUMNS
+    )
 
     metadata_columns = {
         "filename",
