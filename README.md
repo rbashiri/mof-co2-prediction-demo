@@ -18,8 +18,7 @@ mof-co2-prediction-demo/
 │   ├── phase 1/                          # Geometry-only baseline modeling and SHAP
 │   ├── phase_2/                          # Geometry + linker descriptor modeling
 │   │   └── geometry_linker_modeling.ipynb
-│   └── phase_3/                          # CIF matching, metal descriptors, controlled comparison
-│       ├── cif_matching_metal_descriptors.ipynb
+│   └── phase_3/                          # Controlled comparison with CIF/metal descriptors
 │       └── phase3D_xgboost_controlled_comparison.ipynb
 ├── src/
 │   ├── app.py                            # App or future model interface
