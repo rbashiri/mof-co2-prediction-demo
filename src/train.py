@@ -22,17 +22,30 @@ from sklearn.model_selection import train_test_split
 
 from xgboost import XGBRegressor
 
+if __package__:
+    from .paths import (
+        MODELS_DIR as CONFIGURED_MODELS_DIR,
+        PHASE1_DATA_PATH as CONFIGURED_PHASE1_DATA_PATH,
+        PHASE2_DATA_PATH as CONFIGURED_PHASE2_DATA_PATH,
+        PHASE3_DATA_PATH as CONFIGURED_PHASE3_DATA_PATH,
+        RESULTS_DIR as CONFIGURED_RESULTS_DIR,
+    )
+else:
+    from paths import (
+        MODELS_DIR as CONFIGURED_MODELS_DIR,
+        PHASE1_DATA_PATH as CONFIGURED_PHASE1_DATA_PATH,
+        PHASE2_DATA_PATH as CONFIGURED_PHASE2_DATA_PATH,
+        PHASE3_DATA_PATH as CONFIGURED_PHASE3_DATA_PATH,
+        RESULTS_DIR as CONFIGURED_RESULTS_DIR,
+    )
 
 SEED = 12345
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-
-PHASE1_DATA_PATH = str(PROJECT_ROOT / "data" / "processed" / "data_clean_v2")
-PHASE2_DATA_PATH = str(PROJECT_ROOT / "data" / "processed" / "hmof_linker_extended_descriptors.csv")
-PHASE3_DATA_PATH = str(PROJECT_ROOT / "data" / "processed" / "hmof_phase3_structure_descriptors.csv")
-
-RESULTS_DIR = str(PROJECT_ROOT / "results" / "modeling_results")
-MODELS_DIR = str(PROJECT_ROOT / "results" / "models")
+PHASE1_DATA_PATH = str(CONFIGURED_PHASE1_DATA_PATH)
+PHASE2_DATA_PATH = str(CONFIGURED_PHASE2_DATA_PATH)
+PHASE3_DATA_PATH = str(CONFIGURED_PHASE3_DATA_PATH)
+RESULTS_DIR = str(CONFIGURED_RESULTS_DIR)
+MODELS_DIR = str(CONFIGURED_MODELS_DIR)
 
 GEOMETRY_COLUMNS = [
     "lcd",

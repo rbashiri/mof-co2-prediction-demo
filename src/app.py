@@ -8,9 +8,9 @@ import pandas as pd
 import shap
 import streamlit as st
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-MODELS_DIR = PROJECT_ROOT / "results" / "models"
-DATA_PATH = PROJECT_ROOT / "data" / "processed" / "data_clean_v2"
+from paths import MODELS_DIR, PHASE1_DATA_PATH
+
+DATA_PATH = PHASE1_DATA_PATH
 
 FEATURES = ["lcd", "pld", "void_fraction", "surface_area_m2g"]
 PRESSURES = [0.01, 0.05, 0.1, 0.5, 2.5]

@@ -1,0 +1,10 @@
+paths:
+  # Use paths relative to the repository, or absolute paths to store data elsewhere.
+  data_dir: data/processed
+  raw_data_dir: data/raw
+  phase1_data: data_clean_v2
+  phase2_data: hmof_linker_extended_descriptors.csv
+  phase3_data: hmof_phase3_structure_descriptors.csv
+  results_root: results
+  results_dir: results/modeling_results
+  models_dir: results/models

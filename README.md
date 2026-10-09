@@ -43,6 +43,18 @@ mof-co2-adsorption/
 └── requirements.txt
 ```
 The current project now includes Phase 2 RDKit-based linker chemistry descriptors and Phase 3 CIF-derived metal-node descriptors. The `src/` folder stores reusable Python scripts for preprocessing, linker extraction, descriptor generation, training, evaluation, and future deployment.
+
+## Configure data and model paths
+
+Training, the Streamlit app, and notebooks read their paths from
+`configs/config.yaml`. By default, processed datasets are expected in
+`data/processed/`, raw datasets in `data/raw/`, and models and training
+results under `results/`. If those folders move, update the corresponding
+entry under `paths` in that YAML file; the code does not need to change.
+Use an absolute path for data stored outside the repository. You can also
+override paths with environment variables such as `MOF_DATA_DIR`,
+`MOF_RAW_DATA_DIR`, `MOF_PHASE1_DATA_PATH`, `MOF_RESULTS_ROOT`,
+`MOF_MODELS_DIR`, and `MOF_RESULTS_DIR`.
 ====================================================
 ## Project Objectives
 ### Overview
