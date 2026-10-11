@@ -196,6 +196,12 @@ verified adsorption mechanisms.
 
 ## 5. Add an optional scientific summary
 
+The team has selected the LLM summary for the hackathon delivery scope.
+It remains unimplemented; the provider and data policy must be agreed
+together. See the [task and ownership plan](../docs/hackathon_tasks_and_ownership.md)
+for its scientific contract, acceptance tests, owners, and deadline.
+The core prediction/SHAP workflow remains independent of LLM availability.
+
 Choose a provider together before implementation. Decide on local versus
 hosted execution, costs, credentials, and what information may leave the
 computer.

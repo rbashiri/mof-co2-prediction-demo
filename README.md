@@ -18,5 +18,9 @@ feature order, metrics, dataset identity, and the tested environment.
 The [pre-freeze validation report](docs/PHASE3/pre_freeze_validation.md)
 records the checks and remaining deployment limitations.
 
+The [hackathon task and ownership plan](docs/hackathon_tasks_and_ownership.md)
+targets a prepared setup by October 17, 2026, including an LLM summary,
+scientific review, deployment, and presentation preparation.
+
 The [original README](docs/archive/README_original.md) is preserved unchanged
 for reference.
