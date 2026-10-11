@@ -38,9 +38,9 @@ This selection reflects performance on the evaluated simulated dataset. It
 does not establish experimental accuracy or generalization to unseen MOF
 families. SHAP explains model contributions, not proven chemical mechanisms.
 
-**Implementation status:** the existing Streamlit app still loads Phase 1
-models. Migrating its inputs, predictions, and explanations to Phase 3 is
-the next implementation step.
+**Implementation status:** the Streamlit app now loads Phase 3 Model B.
+Users supply four geometry values and a CIF; local MOFid, RDKit, and pymatgen
+assemble the remaining descriptors for predictions and SHAP.
 
 ## Data for collaborators
 
@@ -57,7 +57,7 @@ files into this repository's `data/processed/`, and copy its model files into
 `results/models/` (or the locations configured in `configs/config.yaml`).
 The five `phase_3_model_b_geometry_plus_linkers_plus_cif_*.joblib` files are
 the selected Phase 3 models. The `phase1_xgboost_*.joblib` files are retained
-only for the current Phase 1 prototype.
+only as baseline artifacts and are not used by the current app.
 
 | File | Use |
 |------|-----|

@@ -16,15 +16,16 @@ replace XGBoost.
 
 | Component | Current state | Phase 3 target |
 |-----------|---------------|----------------|
-| Interface | Streamlit app with manual geometry entry and CSV upload | Inputs compatible with the full Model B feature set |
-| Models | Five Phase 1 joblib models | Five Phase 3 Model B joblib models |
-| Predictions | Five pressures, table/chart for manual entry; downloadable CSV for uploads | Preserve these outputs using Phase 3 |
-| SHAP | Waterfall explanation for manual entry at a selected pressure | Explain the same Phase 3 model and feature row used for prediction |
+| Interface | Four geometry inputs + CIF upload; prepared 48-feature CSV batch mode | Broader browser and deployment validation |
+| Models | Five configured Phase 3 Model B joblib models | Freeze and distribute a reproducible model bundle |
+| Predictions | Five pressures, table/chart/download for geometry + CIF; CSV batch download | Preserve these outputs |
+| SHAP | Waterfall for the geometry + CIF row at a selected pressure | Explain the same Phase 3 model and feature row used for prediction |
 | LLM summary | Not implemented; provider undecided | Optional, grounded summary of predictions and SHAP |
 | Deployment | Local prototype; Dockerfile is only a base image | Tested, reproducible deployment with separately supplied model artifacts |
 
-The current [app](../src/app.py) is a **Phase 1 prototype**, not yet a
-Phase 3 web demo. Documentation changes do not switch its models.
+The current [app](../src/app.py) is a **local Phase 3 demo**. It requires
+trusted corrected model artifacts and an installed native MOFid executable.
+The LLM summary and reproducible hosted deployment remain unfinished.
 
 ## 1. Prepare the Phase 3 model bundle
 
@@ -76,7 +77,7 @@ provides reusable pymatgen extraction of the 15 metal/lattice descriptors.
 These outputs matched the saved Phase 3 dataset for five known CIFs
 (hMOF-0, hMOF-27262, hMOF-10022, hMOF-10, and hMOF-100), with relative and
 absolute tolerances of 1e-8. Oxidation-state estimation is excluded.
-The script is not yet connected to the app.
+The script is connected through the combined feature function to the app.
 
 ### Combined geometry-plus-CIF feature pipeline
 
@@ -142,7 +143,11 @@ executable respectively. Those five integration cases are skipped when the
 reference environment is not configured. Native MOFid installation remains
 a separate deployment prerequisite, not a Python-only dependency.
 
-The next step is connecting this validated function to the Streamlit app.
+The app calls this function after the user clicks **Extract descriptors and
+predict**. Selecting another SHAP pressure reuses the extracted row; changing
+geometry or the uploaded CIF hides prior results until prediction is requested
+again. Extraction failures are displayed rather than replaced with fabricated
+features.
 
 Validate required columns, numeric types, missing/non-finite values, and
 feature ordering against the trained models. Exclude identifiers and observed
@@ -188,19 +193,41 @@ service is unavailable; show any service failure explicitly.
 - Decide hosting, access permissions, model distribution, and any API budget.
 - Keep credentials outside source control.
 
-## Current prototype quick start
+## Local Phase 3 demo quick start
 
 From the repository root, in an activated Python environment:
 
 ```bash
 pip install -r requirements.txt
+# Set this to your installed MOFid native executable:
+export MOF_SBU_PATH="/path/to/mofid/bin/sbu"
 streamlit run src/app.py
 ```
 
-The prototype still needs the five `phase1_xgboost_*.joblib` artifacts in
-the configured models directory. Its reference data is `data_clean_v2`.
-Changing the configured Phase 3 dataset alone will **not** migrate the app.
+The app needs the five corrected Phase 3 Model B artifacts described above in
+the configured models directory. Reference datasets are not required for
+geometry + CIF inference: users supply their own geometry values.
+
+1. Select **Geometry + CIF**.
+2. Enter LCD and PLD in angstrom, void fraction between 0 and 1, and surface
+   area in m2/g. These values must describe the uploaded structure.
+3. Upload a CIF and click **Extract descriptors and predict**.
+4. Review predictions, download them, and choose a pressure for SHAP.
+
+Alternatively, select **Prepared feature CSV** for batch predictions. Supply
+all 48 model features as finite numeric columns. Identifiers can be included
+for traceability but are not passed to the models. Batch SHAP is not yet
+implemented.
+
+The `app` section of [configs/config.yaml](../configs/config.yaml) controls
+model filenames, the displayed model label, an optional `sbu_path`, and
+`extraction_timeout_seconds`. `MOF_SBU_PATH` overrides `app.sbu_path`; relative
+configured executable paths resolve against the repository root. Model
+directories still use the existing `paths.models_dir` / `MOF_MODELS_DIR`.
+No personal machine paths are embedded in the app.
 
 Configure file locations in [configs/config.yaml](../configs/config.yaml).
-The first development milestone is to wire the full Phase 3 input schema,
-Model B loading, and matching SHAP explanations into the existing app.
+Focused app tests are in [tests/test_interface.py](../tests/test_interface.py).
+The real-CIF app test requires `MOF_REFERENCE_CIF_DIR` and `MOF_SBU_PATH`.
+Next milestones are broader uploaded-structure validation, reproducible
+deployment, and the optional LLM summary.

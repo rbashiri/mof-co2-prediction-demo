@@ -9,8 +9,8 @@ The project documentation is organized into two guides:
    inputs, model integration, predictions, SHAP, optional LLM summaries,
    testing, and deployment.
 
-The current app is still a Phase 1 prototype; Phase 3 integration is the next
-development step.
+The app uses Phase 3 Model B with supplied geometry and CIF-derived
+descriptors. See the web guide for local MOFid setup and usage.
 
 The [original README](docs/archive/README_original.md) is preserved unchanged
 for reference.
