@@ -3,7 +3,20 @@
 # Phase 3B — Extract Metal-Node Descriptors
 
 **Goal:**  
-Extract metal-node descriptors from matched CIF structures, including metal identity, metal counts, selected elemental properties, and exploratory oxidation-state/open-metal-site indicators.
+Extract metal-node descriptors from matched CIF structures, including metal identity, metal counts, and selected elemental properties.
+
+### Archived oxidation-state investigation
+
+The oxidation-state/OMS investigation is retained only in the parent project's
+archive, not in this sharing repository. The project owner rejected its
+oxidation assignments after observing uniform +2 metal-state estimates.
+These estimates are not accepted as validated chemical properties.
+
+`oxidation_assignment_success`, `mean_metal_oxidation_state`,
+`min_metal_oxidation_state`, `max_metal_oxidation_state`, and `oxidation_error`
+are excluded from the active training feature set. Existing datasets may
+retain those columns for provenance; they must not be passed to the models.
+Oxidation-state and open-metal-site estimation are not part of the web MVP.
 
 **Why this matters:**  
 Metal nodes can strongly influence CO₂ adsorption, especially at low pressure, because metal identity, charge environment, and coordination sites can affect CO₂ binding strength.
@@ -18,8 +31,6 @@ Metal nodes can strongly influence CO₂ adsorption, especially at low pressure,
 | `metal_fraction` | Metal identity/composition | Fraction of atoms in the structure that are metals | High |
 | `avg_metal_atomic_number` | Elemental properties | Average atomic number of the metal atoms in the structure | High |
 | `avg_metal_atomic_mass` | Elemental properties | Average atomic mass of the metal atoms in the structure | High |
-| `estimated_oxidation_state` | Oxidation state | Estimated oxidation state of metal centers, if assignment is reliable | Investigate |
-| `possible_open_metal_site` | Open metal sites | Indicator of possible under-coordinated metal centers, if assignment is reliable | Investigate |
 
 ### pymatgen
 **pip install pymatgen**

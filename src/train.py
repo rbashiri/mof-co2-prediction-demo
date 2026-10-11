@@ -139,6 +139,11 @@ def get_numeric_linker_columns(df):
         "cif_filename",
         "cif_path",
         "cif_found",
+        "oxidation_error",
+        "oxidation_assignment_success",
+        "mean_metal_oxidation_state",
+        "min_metal_oxidation_state",
+        "max_metal_oxidation_state",
     }
 
     excluded_columns = excluded_columns.union(metadata_columns)
