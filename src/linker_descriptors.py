@@ -8,6 +8,9 @@ This module contains reusable RDKit functions for:
 4. calculating extended linker descriptors.
 """
 
+import math
+from collections.abc import Sequence
+
 import pandas as pd
 
 from rdkit import Chem
@@ -160,3 +163,58 @@ def calculate_extended_linker_descriptors(smiles):
         "ring_count": rdMolDescriptors.CalcNumRings(mol),
         "rotatable_bond_count": rdMolDescriptors.CalcNumRotatableBonds(mol),
     }
+
+
+def aggregate_linker_descriptors(linker_smiles: Sequence[str]) -> dict[str, float]:
+    """Reproduce Phase 2 MOF-level summaries over retained linker fragments."""
+    if not linker_smiles:
+        raise ValueError("No valid linkers were extracted from the CIF.")
+    descriptors = []
+    for smiles in linker_smiles:
+        mol = Chem.MolFromSmiles(smiles)
+        if mol is None or mol.GetNumHeavyAtoms() == 0:
+            raise ValueError(f"Invalid linker SMILES: {smiles!r}")
+        descriptor = calculate_extended_linker_descriptors(smiles)
+        if not all(math.isfinite(value) for value in descriptor.values()):
+            raise ValueError(f"Non-finite linker descriptors for {smiles!r}")
+        descriptors.append(descriptor)
+
+    # Training counts these eight elements, rather than all possible elements.
+    elements = ("C", "N", "O", "F", "S", "Cl", "Br", "I")
+    result = {
+        f"total_{element}_count": float(
+            sum(count_element(smiles, element) for smiles in linker_smiles)
+        )
+        for element in elements
+    }
+    result["total_heteroatom_count"] = sum(
+        result[f"total_{element}_count"] for element in elements[1:]
+    )
+    result["total_heavy_atom_count"] = sum(
+        result[f"total_{element}_count"] for element in elements
+    )
+    heavy_count = result["total_heavy_atom_count"]
+    result["heteroatom_fraction"] = (
+        result["total_heteroatom_count"] / heavy_count if heavy_count else 0.0
+    )
+    for group, pattern in FUNCTIONAL_GROUP_PATTERNS.items():
+        result[f"total_{group}_count"] = float(
+            sum(count_functional_group(smiles, pattern) for smiles in linker_smiles)
+        )
+    for name in ("MolWt", "TPSA"):
+        values = [descriptor[name] for descriptor in descriptors]
+        result[f"total_{name}"] = sum(values)
+        result[f"mean_{name}"] = sum(values) / len(values)
+        result[f"max_{name}"] = max(values)
+    for name in ("HBD", "HBA", "aromatic_atom_count"):
+        result[f"total_{name}"] = sum(descriptor[name] for descriptor in descriptors)
+    result["mean_aromatic_fraction"] = sum(
+        descriptor["aromatic_fraction"] for descriptor in descriptors
+    ) / len(descriptors)
+    for name, column in (
+        ("heavy_atom_count", "total_heavy_atom_count_rdkit"),
+        ("ring_count", "total_ring_count"),
+        ("rotatable_bond_count", "total_rotatable_bond_count"),
+    ):
+        result[column] = sum(descriptor[name] for descriptor in descriptors)
+    return result

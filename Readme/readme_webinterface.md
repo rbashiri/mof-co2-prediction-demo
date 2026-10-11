@@ -67,8 +67,82 @@ geometry values. Agree on the input experience before implementing it:
 - CSV upload of already prepared feature rows is the simplest initial path.
 - Manual entry requires the complete feature schema; alternatively, selecting
   an existing MOF could populate a prepared row.
-- Raw CIF upload would require an additional extraction pipeline and is not
-  part of the prepared-data MVP.
+- The agreed next interface accepts four supplied geometry values and a CIF.
+  Geometry is not calculated from the CIF; Zeo++ is not required.
+
+For the planned geometry-plus-CIF workflow,
+[phase3_extract_metal_descriptors.py](../src/phase3_extract_metal_descriptors.py)
+provides reusable pymatgen extraction of the 15 metal/lattice descriptors.
+These outputs matched the saved Phase 3 dataset for five known CIFs
+(hMOF-0, hMOF-27262, hMOF-10022, hMOF-10, and hMOF-100), with relative and
+absolute tolerances of 1e-8. Oxidation-state estimation is excluded.
+The script is not yet connected to the app.
+
+### Combined geometry-plus-CIF feature pipeline
+
+[phase3_features.py](../src/phase3_features.py) now combines:
+
+1. MOFid native fragmentation of the CIF.
+2. The training-time RDKit fragment filters in
+   [extract_linkers.py](../src/extract_linkers.py).
+3. All 29 aggregated linker descriptors from
+   [linker_descriptors.py](../src/linker_descriptors.py).
+4. The 15 pymatgen metal/lattice descriptors and four supplied geometry values.
+
+The result is one numeric row with 48 Model B inputs. Pass the saved model's
+feature names to enforce its exact schema and ordering. Missing/invalid
+geometry, failed extraction, rejected fragments, non-finite descriptors,
+and incompatible model schemas raise errors; descriptors are not guessed.
+Extraction uses temporary output directories that are cleaned automatically.
+
+Set `MOF_SBU_PATH` to the installed MOFid `bin/sbu` executable, or supply
+`sbu_path` to the function. If neither is supplied, `sbu` must be on PATH.
+This function calls MOFid's native fragmentation executable directly; it
+does not need Java topology classification. The MOFid Python wrapper still
+requires Java for its separate full-identifier workflow.
+
+From the repository root, in the project environment:
+
+```python
+from src.phase3_features import build_phase3_features
+
+features = build_phase3_features(
+    "uploaded_structure.cif",
+    {
+        "lcd": 11.75,
+        "pld": 10.75,
+        "void_fraction": 0.795539,
+        "surface_area_m2g": 3676.3,
+    },
+    feature_names=model.get_booster().feature_names,
+)
+predicted_uptake = model.predict(features)
+```
+
+Here `model` is a trusted, loaded Phase 3 Model B artifact. Repeat prediction
+with the other four models after verifying their feature order agrees.
+The supplied geometry must correspond to the uploaded structure; the function
+cannot verify that correspondence from the CIF alone.
+
+All 48 inputs matched the reference dataset on the five examples above at
+`rtol=1e-8`, `atol=1e-8`; predictions from all five pressure models matched
+reference-row predictions at `rtol=1e-6`, `atol=1e-6`. This is an initial
+validation on known hMOFs, not certification for arbitrary uploaded structures.
+
+Run the focused tests with:
+
+```bash
+python -m pytest tests/test_phase3_features.py tests/test_train_features.py -q
+```
+
+To include the real-CIF comparisons, set `MOF_REFERENCE_DATA_DIR`,
+`MOF_REFERENCE_CIF_DIR`, `MOF_REFERENCE_MODELS_DIR`, and `MOF_SBU_PATH` to local
+prepared datasets, reference CIFs, corrected model artifacts, and the native
+executable respectively. Those five integration cases are skipped when the
+reference environment is not configured. Native MOFid installation remains
+a separate deployment prerequisite, not a Python-only dependency.
+
+The next step is connecting this validated function to the Streamlit app.
 
 Validate required columns, numeric types, missing/non-finite values, and
 feature ordering against the trained models. Exclude identifiers and observed

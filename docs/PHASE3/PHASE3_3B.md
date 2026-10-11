@@ -12,11 +12,11 @@ archive, not in this sharing repository. The project owner rejected its
 oxidation assignments after observing uniform +2 metal-state estimates.
 These estimates are not accepted as validated chemical properties.
 
-`oxidation_assignment_success`, `mean_metal_oxidation_state`,
-`min_metal_oxidation_state`, `max_metal_oxidation_state`, and `oxidation_error`
-are excluded from the active training feature set. Existing datasets may
-retain those columns for provenance; they must not be passed to the models.
-Oxidation-state and open-metal-site estimation are not part of the web MVP.
+The rejected oxidation columns have been removed from the active Phase 3
+structure dataset in both projects and the local upload bundle. Original
+datasets are preserved in the parent project's data archive. The retrained
+models exclude these fields. Oxidation-state and open-metal-site estimation
+are not part of the web MVP.
 
 **Why this matters:**  
 Metal nodes can strongly influence CO₂ adsorption, especially at low pressure, because metal identity, charge environment, and coordination sites can affect CO₂ binding strength.
