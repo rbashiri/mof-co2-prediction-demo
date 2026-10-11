@@ -1,0 +1,10 @@
+-r requirements.txt
+
+# Notebook execution and visualization.
+ipykernel==7.3.0
+ipython==9.15.0
+seaborn==0.13.2
+
+# Tests, including the retained notebook-style model tests.
+pytest==9.1.1
+ipytest==0.14.2

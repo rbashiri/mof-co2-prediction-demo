@@ -101,6 +101,18 @@ overrides, so collaborators need not edit machine-specific paths in code.
 
 ## Research entry points
 
+For notebooks and tests, install
+[requirements-dev.txt](../requirements-dev.txt) from the repository root:
+
+```bash
+python -m pip install -r requirements-dev.txt
+```
+
+This includes the app's [runtime requirements](../requirements.txt), plus
+notebook and testing tools. The locally validated runtime uses Python 3.12.3.
+Native MOFid is installed separately for geometry-plus-CIF inference; these
+dependency declarations are not yet a full frozen environment.
+
 - [Phase 1 modeling](../notebook/phase%201/modeling/modeling_xgboost_all_pressures.ipynb)
   and [SHAP analysis](../notebook/phase%201/shap/shap_all_pressures.ipynb).
 - [Phase 2 modeling](../notebook/phase_2/geometry_linker_modeling.ipynb).

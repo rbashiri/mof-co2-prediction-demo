@@ -104,6 +104,13 @@ requires Java for its separate full-identifier workflow.
 
 From the repository root, in the project environment:
 
+Install [requirements-dev.txt](../requirements-dev.txt) for notebook and test
+tools; it also includes the runtime requirements:
+
+```bash
+python -m pip install -r requirements-dev.txt
+```
+
 ```python
 from src.phase3_features import build_phase3_features
 
@@ -198,11 +205,33 @@ service is unavailable; show any service failure explicitly.
 From the repository root, in an activated Python environment:
 
 ```bash
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 # Set this to your installed MOFid native executable:
 export MOF_SBU_PATH="/path/to/mofid/bin/sbu"
 streamlit run src/app.py
 ```
+
+### Dependency declarations
+
+- [requirements.txt](../requirements.txt) contains the Python dependencies for
+  prediction, RDKit/pymatgen CIF descriptors, SHAP, and Streamlit. Runtime pins
+  match the local environment tested with Python **3.12.3**; `pymatgen-core`
+  and SciPy are pinned explicitly to preserve the scientific stack.
+- [requirements-dev.txt](../requirements-dev.txt) includes the runtime file
+  and adds IPython/ipykernel, Seaborn for the retained EDA notebooks, and
+  pytest/ipytest for tests. Use this file for research and development.
+- The previous broad package list was reviewed against current source,
+  retained notebook imports, and setup instructions. Unused direct declarations
+  for MLflow, Databricks, Flask/FastAPI, database tooling, the Docker Python
+  SDK, and other unrelated tools were removed. Dependencies required by the
+  retained packages are still installed transitively by pip. No packages were
+  uninstalled from the existing environment.
+- Native MOFid's `sbu` executable and supporting resources remain a separate
+  requirement. Adding a PyPI package named `mofid` does not reproduce that
+  native installation. CMake is a build tool, not an app runtime dependency.
+- These files are dependency declarations, not a complete transitive lock or
+  a certification of a fresh installation. Capture a reproducible environment
+  and native MOFid setup, then validate them before formally freezing models.
 
 The app needs the five corrected Phase 3 Model B artifacts described above in
 the configured models directory. Reference datasets are not required for
