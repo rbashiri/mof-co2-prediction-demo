@@ -90,5 +90,6 @@ Models and datasets are distributed separately, not added to Git.
 - Five known CIFs do not certify arbitrary uploaded structures or
   generalization to unseen MOF families.
 
-The corrected model baseline passed the core pre-freeze checks. A formal
-versioned manifest and deployment validation remain separate next steps.
+The corrected model baseline passed the core pre-freeze checks. It was
+subsequently frozen in the [phase3-model-b-v1 manifest](phase3-model-b-v1.yaml).
+Deployment validation remains a separate next step.

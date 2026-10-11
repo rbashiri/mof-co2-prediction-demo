@@ -25,6 +25,13 @@ Phase 3 descriptors are also excluded from Model A's linker feature set.
 
 ### Selected model: Phase 3 Model B
 
+**Frozen baseline:** `phase3-model-b-v1`. The
+[versioned manifest](../docs/PHASE3/phase3-model-b-v1.yaml) records the exact
+five artifacts, ordered 48-feature schema, dataset checksum, recomputed
+metrics, and tested environment. A verified local bundle is preserved under
+`results/frozen_models/phase3-model-b-v1/`, outside Git. Never overwrite this
+version; future retraining must produce a new version.
+
 We selected **Phase 3 Model B (geometry + linkers + CIF descriptors)** for
 the web demo because it achieved higher test R2 than Model A across all five
 pressures in the evaluated controlled comparison.

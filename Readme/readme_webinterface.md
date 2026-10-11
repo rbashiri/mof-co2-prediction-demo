@@ -17,7 +17,7 @@ replace XGBoost.
 | Component | Current state | Phase 3 target |
 |-----------|---------------|----------------|
 | Interface | Four geometry inputs + CIF upload; prepared 48-feature CSV batch mode | Broader browser and deployment validation |
-| Models | Five configured Phase 3 Model B joblib models | Freeze and distribute a reproducible model bundle |
+| Models | Five configured Phase 3 Model B joblib models; baseline frozen as phase3-model-b-v1 | Distribute versioned bundle and complete native deployment recipe |
 | Predictions | Five pressures, table/chart/download for geometry + CIF; CSV batch download | Preserve these outputs |
 | SHAP | Waterfall for the geometry + CIF row at a selected pressure | Explain the same Phase 3 model and feature row used for prediction |
 | LLM summary | Not implemented; provider undecided | Optional, grounded summary of predictions and SHAP |
@@ -28,6 +28,21 @@ trusted corrected model artifacts and an installed native MOFid executable.
 The LLM summary and reproducible hosted deployment remain unfinished.
 
 ## 1. Prepare the Phase 3 model bundle
+
+The corrected baseline is now frozen as **phase3-model-b-v1** in the
+[manifest](../docs/PHASE3/phase3-model-b-v1.yaml). Its local distribution
+folder is `results/frozen_models/phase3-model-b-v1/`: five unchanged model
+copies, `manifest.yaml`, `pre_freeze_environment.txt`, and `validation.md`.
+Models remain outside Git; the owner must upload this versioned folder to
+the shared storage manually. The online copy has not been verified.
+
+Verify each downloaded model against the manifest SHA-256 before loading.
+The existing app paths remain unchanged. To use the versioned local bundle,
+set `MOF_MODELS_DIR` to its directory before starting the app. This freeze
+identifies the tested baseline, not a completed hosted deployment. Native
+MOFid rebuilding and full browser upload/download review remain outstanding.
+Do not overwrite the frozen folder or manifest; use a new version for changed
+models. Retraining is unnecessary to use this baseline.
 
 Train with [src/train.py](../src/train.py) using
 `hmof_phase3_structure_descriptors.csv`:

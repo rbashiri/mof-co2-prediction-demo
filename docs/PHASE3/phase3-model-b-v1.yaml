@@ -1,0 +1,211 @@
+manifest_schema_version: 1
+model_version: phase3-model-b-v1
+status: frozen_baseline
+frozen_at_utc: '2026-10-11T05:44:56.853918+00:00'
+model_family: XGBoost regressor, Phase 3 Model B
+uptake_unit: mol/kg
+code_commit_at_freeze: 47279a0139ef6a9da75949112f3fa308a525e655
+validated_code_commit: 25b33274117829c8e1143f7e670300efee27e5c5
+training_provenance:
+  script: src/train.py
+  exact_training_commit: null
+  note: Exact training invocation commit was not recorded; artifacts are identified
+    by SHA-256. Metrics were recomputed from saved artifacts without retraining.
+  seed: 12345
+  split_fractions:
+    train: 0.6
+    validation: 0.2
+    test: 0.2
+  split_rows:
+    train: 15556
+    validation: 5186
+    test: 5186
+  parameters:
+    n_estimators: 200
+    learning_rate: 0.1
+    max_depth: 3
+    min_child_weight: 1
+    objective: reg:squarederror
+    random_state: 12345
+    n_jobs: -1
+dataset:
+  file: data/processed/hmof_phase3_structure_descriptors.csv
+  rows: 25928
+  sha256: 213bb407c1286bbeebb39df86c8c092a1b18d70c5410a724f32397400a84942c
+feature_schema:
+  count: 48
+  ordered_names:
+  - lcd
+  - pld
+  - void_fraction
+  - surface_area_m2g
+  - total_C_count
+  - total_N_count
+  - total_O_count
+  - total_F_count
+  - total_S_count
+  - total_Cl_count
+  - total_Br_count
+  - total_I_count
+  - total_heteroatom_count
+  - total_heavy_atom_count
+  - heteroatom_fraction
+  - total_amine_count
+  - total_hydroxyl_count
+  - total_carboxylate_or_carboxylic_acid_count
+  - total_fluorinated_group_count
+  - total_sulfonyl_or_sulfate_count
+  - total_MolWt
+  - mean_MolWt
+  - max_MolWt
+  - total_TPSA
+  - mean_TPSA
+  - max_TPSA
+  - total_HBD
+  - total_HBA
+  - total_aromatic_atom_count
+  - mean_aromatic_fraction
+  - total_heavy_atom_count_rdkit
+  - total_ring_count
+  - total_rotatable_bond_count
+  - num_metal_types
+  - total_metal_atoms
+  - total_atoms
+  - metal_fraction
+  - avg_metal_atomic_number
+  - avg_metal_atomic_mass
+  - unit_cell_volume
+  - density
+  - num_sites
+  - lattice_a
+  - lattice_b
+  - lattice_c
+  - lattice_alpha
+  - lattice_beta
+  - lattice_gamma
+  geometry_units:
+    lcd: angstrom
+    pld: angstrom
+    void_fraction: dimensionless
+    surface_area_m2g: m2/g
+  implementation:
+  - src/phase3_features.py
+  - src/linker_descriptors.py
+  - src/extract_linkers.py
+  - src/phase3_extract_metal_descriptors.py
+  oxidation_fields_excluded: true
+models:
+- file: phase_3_model_b_geometry_plus_linkers_plus_cif_0.01bar.joblib
+  pressure_bar: 0.01
+  target_column: CO2_uptake_0.01bar_molkg
+  sha256: 355c06a6282a66236409ad36c993b10496a6bd29d0c4de347513fc5ed2478464
+  bytes: 246060
+  metrics:
+    train:
+      MAE: 0.04536103769610332
+      RMSE: 0.0963935898072562
+      R2: 0.8031538859783177
+    validation:
+      MAE: 0.05218685778261822
+      RMSE: 0.11753449310864618
+      R2: 0.7169654231023499
+    test:
+      MAE: 0.05042818345269612
+      RMSE: 0.11365530236791999
+      R2: 0.7330781873989327
+- file: phase_3_model_b_geometry_plus_linkers_plus_cif_0.05bar.joblib
+  pressure_bar: 0.05
+  target_column: CO2_uptake_0.05bar_molkg
+  sha256: 20890006cc7d0e81660b2bf8df8650c29b3435764fb4cb8c241298705dc71812
+  bytes: 246401
+  metrics:
+    train:
+      MAE: 0.11704402293339884
+      RMSE: 0.19924936776791977
+      R2: 0.8555113108686695
+    validation:
+      MAE: 0.13116418357735912
+      RMSE: 0.23372860571296078
+      R2: 0.8145703276072076
+    test:
+      MAE: 0.1256303285336359
+      RMSE: 0.2161518292618371
+      R2: 0.8299176201972998
+- file: phase_3_model_b_geometry_plus_linkers_plus_cif_0.1bar.joblib
+  pressure_bar: 0.1
+  target_column: CO2_uptake_0.1bar_molkg
+  sha256: d42cba45be590a12aa852ee72a9072ce9651c98e58639f410f47624d2bd865d5
+  bytes: 246605
+  metrics:
+    train:
+      MAE: 0.17058352511465966
+      RMSE: 0.2678910262374538
+      R2: 0.8689462753499346
+    validation:
+      MAE: 0.18783347309105625
+      RMSE: 0.3073329280028127
+      R2: 0.8367904892230822
+    test:
+      MAE: 0.18115677336207134
+      RMSE: 0.2867870252634318
+      R2: 0.8503393641621091
+- file: phase_3_model_b_geometry_plus_linkers_plus_cif_0.5bar.joblib
+  pressure_bar: 0.5
+  target_column: CO2_uptake_0.5bar_molkg
+  sha256: ff640607cdb81780f5ea045f78f92f310021b7dcecf9c9813b75052ad2699d42
+  bytes: 246331
+  metrics:
+    train:
+      MAE: 0.3444767698123991
+      RMSE: 0.4752224147173841
+      R2: 0.8953648389440907
+    validation:
+      MAE: 0.3668387070214286
+      RMSE: 0.5083747983902571
+      R2: 0.8809851916039443
+    test:
+      MAE: 0.35724592413876266
+      RMSE: 0.48926223481831055
+      R2: 0.8876896430782186
+- file: phase_3_model_b_geometry_plus_linkers_plus_cif_2.5bar.joblib
+  pressure_bar: 2.5
+  target_column: CO2_uptake_2.5bar_molkg
+  sha256: 50300d95631690ecbfb3fa98ff537862ea9629917fd1f7c90b9745f6db27b0b0
+  bytes: 246671
+  metrics:
+    train:
+      MAE: 0.5500138773520027
+      RMSE: 0.727747732334005
+      R2: 0.9224606239702114
+    validation:
+      MAE: 0.5831705548485292
+      RMSE: 0.7674121350487814
+      R2: 0.9091092297439618
+    test:
+      MAE: 0.5760127452270795
+      RMSE: 0.7592639033542192
+      R2: 0.9118225560438009
+python_environment:
+  python: 3.12.3
+  snapshot: docs/PHASE3/pre_freeze_environment.txt
+  sha256: 8afa1cb047a7336ea648c8bd2cf2d7af07e4152425dea3645a13e5133c93cf5b
+  platform: Linux-6.6.114.1-microsoft-standard-WSL2-x86_64-with-glibc2.39
+  hash_locked: false
+native_mofid:
+  openbabel_library_sha256: 25800d7e93f09cbc477e44717360763b4bcbdd4850e6228fdc8259bacf71329a
+  openbabel_version: 3.1.0
+  sbu_sha256: 8d1d58d5809c056f37388690967ecf07ffa05489ffb4374a7e458c37510bd1e3
+  source_commit: 36873683083c7bc62c1da2062df2833adc35b48a
+  uses_existing_native_installation: true
+validation:
+  report: docs/PHASE3/pre_freeze_validation.md
+  focused_tests_passed_per_environment: 20
+  known_cifs: 5
+  cross_environment_prediction_max_absolute_difference: 0.0
+  fresh_native_rebuild_validated: false
+  full_browser_upload_download_review_complete: false
+distribution:
+  local_bundle: results/frozen_models/phase3-model-b-v1
+  models_in_git: false
+  policy: Never overwrite this version. Changed models require a new version. Verify
+    checksums before use and load only trusted artifacts.
