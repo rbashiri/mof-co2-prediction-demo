@@ -32,10 +32,26 @@ metrics, and tested environment. The complete versioned bundle is committed
 under `results/frozen_models/phase3-model-b-v1/`. Never overwrite this
 version; future retraining must produce a new version.
 
-**Where collaborators can find the model:** clone the repository to get both
-the frozen bundle and the five app-ready `.joblib` files in `results/models/`.
-Check each file against the manifest before loading. Older experiment outputs
-are archived locally in
+**How to find and download the final model from GitHub**
+
+1. Open the project repository on GitHub and select **Code** > **Download ZIP**
+   (or clone the repository).
+2. In the downloaded project, open
+   `results/frozen_models/phase3-model-b-v1/`. This is the frozen final
+   **Phase 3 Model B** bundle.
+3. The bundle contains five `.joblib` files, one for each pressure
+   (0.01, 0.05, 0.1, 0.5, and 2.5 bar), along with `manifest.yaml`,
+   `pre_freeze_environment.txt`, and `validation.md`. Keep these files
+   together; the manifest lists each model's SHA-256 checksum.
+4. To run the app, copy the five `.joblib` files into
+   `results/models/`. That folder already contains app-ready copies after
+   cloning or unzipping the repository, so no copy is needed in that case.
+5. Do not use older experiment models from the local archive. They are not
+   part of the frozen final bundle.
+
+Check the model checksums against the
+[Phase 3 Model B manifest](../docs/PHASE3/phase3-model-b-v1.yaml) before
+loading. Older experiment outputs are archived locally in
 `docs/archive/results_archive/` and are not needed by collaborators.
 
 We selected **Phase 3 Model B (geometry + linkers + CIF descriptors)** for
@@ -57,18 +73,26 @@ assemble the remaining descriptors for predictions and SHAP.
 
 ## Data for collaborators
 
-Use the prepared datasets shared through OneDrive. Keep the downloaded files
-under `data/processed/`; collaborators do not need to repeat raw-data cleaning
-or descriptor extraction.
+The prepared datasets are shared separately from GitHub. To find and set up
+the data:
 
-**Download:** [data_mof_demo on OneDrive](https://1drv.ms/f/c/ab0bbacec1d386eb/IgDJcymaZGwpR7fG_rqk97GXAcGskJ7--PZfOQ6_GWqbcFA?e=orssqL).
-Folder contents are updated manually by the project owner. If access is
-restricted, request permission from the owner.
+1. Open the [data_mof_demo OneDrive folder](https://1drv.ms/f/c/ab0bbacec1d386eb/IgDJcymaZGwpR7fG_rqk97GXAcGskJ7--PZfOQ6_GWqbcFA?e=orssqL).
+   Sign in with an account that has access; if access is denied, ask the
+   project owner to share the folder with you.
+2. Open the `data/processed/` folder in the shared files. Download the dataset
+   you need, or download the folder if you need several datasets.
+3. In your local project copy, place the downloaded files under
+   `data/processed/`, keeping the exact filenames shown in the table below.
+   Create the folder if it does not already exist.
+4. For Phase 3 training, use
+   `hmof_phase3_structure_descriptors.csv`. You do not need to download the
+   dataset just to run the app with the already-provided final models.
+5. Do not commit or push downloaded datasets; they are excluded from Git.
 
-Download the prepared datasets from the shared bundle and copy them into
-`data/processed/`. The final five Phase 3 Model B files are already included
-in `results/models/` in GitHub. The `phase1_xgboost_*.joblib` files are
-retained only as baseline artifacts and are not used by the current app.
+The prepared files are maintained manually by the project owner. The final
+five Phase 3 Model B files are already included in GitHub under
+`results/models/`. The `phase1_xgboost_*.joblib` files are retained only as
+baseline artifacts and are not used by the current app.
 
 | File | Use |
 |------|-----|
@@ -78,8 +102,9 @@ retained only as baseline artifacts and are not used by the current app.
 | `hmof_phase3_metal_descriptors.csv` | Intermediate metal-descriptor dataset, retained for reference |
 | `hmof_linker_descriptors.pkl` | Used by the retained Phase 2 modeling notebook |
 
-Data and trained models are ignored by Git and must be obtained separately.
-The datasets originate from the hMOF/mofdb workflow described in the
+Datasets are excluded from Git and must be obtained separately; the final
+trained Phase 3 models are committed in the repository. The datasets
+originate from the hMOF/mofdb workflow described in the
 [original project README](../docs/archive/README_original.md).
 
 ## Repository structure
