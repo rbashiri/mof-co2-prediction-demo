@@ -32,6 +32,18 @@ metrics, and tested environment. A verified local bundle is preserved under
 `results/frozen_models/phase3-model-b-v1/`, outside Git. Never overwrite this
 version; future retraining must produce a new version.
 
+**Where collaborators can find the model:** the model binaries are not in
+GitHub. Download the five `.joblib` files from the shared
+[data_mof_demo OneDrive folder](https://1drv.ms/f/c/ab0bbacec1d386eb/IgDJcymaZGwpR7fG_rqk97GXAcGskJ7--PZfOQ6_GWqbcFA?e=orssqL)
+and copy them into `results/models/`, or set `MOF_MODELS_DIR` to their
+directory. Check each file against the manifest before loading. The local
+versioned bundle remains in `results/frozen_models/phase3-model-b-v1/`; its
+online copy has not been verified. If the five files or versioned bundle are
+not visible in OneDrive, ask the owner to upload or share them.
+For clarity, `results/models/` is reserved for those five files used by the
+app; older experiment outputs are archived locally in
+`docs/archive/results_archive/`.
+
 We selected **Phase 3 Model B (geometry + linkers + CIF descriptors)** for
 the web demo because it achieved higher test R2 than Model A across all five
 pressures in the evaluated controlled comparison.
@@ -123,7 +135,7 @@ dependency declarations are not yet a full frozen environment.
 - [Phase 1 modeling](../notebook/phase%201/modeling/modeling_xgboost_all_pressures.ipynb)
   and [SHAP analysis](../notebook/phase%201/shap/shap_all_pressures.ipynb).
 - [Phase 2 modeling](../notebook/phase_2/geometry_linker_modeling.ipynb).
-- [Phase 3 controlled comparison](../notebook/phase_3/phase3D_xgboost_controlled_comparison.ipynb).
+- [Phase 3 controlled comparison notebook](../notebook/phase_3/phase3D_xgboost_controlled_comparison.ipynb).
 - [Training script](../src/train.py): run `python src/train.py --phase phase3`
   from the repository root in an environment with the project dependencies.
   This writes models and evaluation results to the configured output folders.

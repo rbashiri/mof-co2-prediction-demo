@@ -69,11 +69,14 @@ are distributed separately from GitHub.
 
 Download the prepared artifacts from
 [data_mof_demo on OneDrive](https://1drv.ms/f/c/ab0bbacec1d386eb/IgDJcymaZGwpR7fG_rqk97GXAcGskJ7--PZfOQ6_GWqbcFA?e=orssqL).
-The owner uploads bundle updates manually. Copy `data/processed/` files into
-the repository's `data/processed/`, and `models/` files into `results/models/`,
-unless alternative paths are configured. Request access from the owner if
-needed. With the selected saved models available, retraining is not required
-for interface integration.
+The owner uploads bundle updates manually. Copy the five frozen
+`phase_3_model_b_geometry_plus_linkers_plus_cif_*.joblib` files into
+`results/models/`, and copy dataset files into `data/processed/`, unless
+alternative paths are configured. Do not copy the other experiment models
+into `results/models/`; older experiment outputs are archived locally in
+`docs/archive/results_archive/`. Request access from the owner if needed. With
+the selected saved models available, retraining is not required for interface
+integration.
 
 ## 2. Define and validate inputs
 
