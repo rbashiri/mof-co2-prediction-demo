@@ -33,8 +33,9 @@ The corrected baseline is now frozen as **phase3-model-b-v1** in the
 [manifest](../docs/PHASE3/phase3-model-b-v1.yaml). Its local distribution
 folder is `results/frozen_models/phase3-model-b-v1/`: five unchanged model
 copies, `manifest.yaml`, `pre_freeze_environment.txt`, and `validation.md`.
-The app-ready copies of the five final models are committed in
-`results/models/`; the full versioned bundle remains local and outside Git.
+The complete frozen bundle and app-ready copies of the five final models are
+committed in `results/frozen_models/phase3-model-b-v1/` and
+`results/models/`, respectively.
 
 Verify each model against the manifest SHA-256 before loading.
 The existing app paths remain unchanged. To use the versioned local bundle,

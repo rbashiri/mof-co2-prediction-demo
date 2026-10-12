@@ -25,10 +25,10 @@ shows the model comparison.
 **Where to get the model files:** the five final `.joblib` files are included
 in GitHub under `results/models/` and are ready to use after cloning the
 repository. Verify their SHA-256 values against the manifest before loading.
-The complete frozen bundle, including environment and validation records, is
-kept locally at `results/frozen_models/phase3-model-b-v1/` and is excluded
-from Git. `results/models/` contains only the five files needed by the app;
-old experiment outputs are kept locally in the ignored
+The complete frozen bundle, including its manifest, environment, and
+validation records, is included in GitHub at
+`results/frozen_models/phase3-model-b-v1/`. `results/models/` contains the
+five app-ready copies. Old experiment outputs are kept locally in the ignored
 `docs/archive/results_archive/` folder. The prepared datasets are shared
 separately through
 [data_mof_demo on OneDrive](https://1drv.ms/f/c/ab0bbacec1d386eb/IgDJcymaZGwpR7fG_rqk97GXAcGskJ7--PZfOQ6_GWqbcFA?e=orssqL).

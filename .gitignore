@@ -52,4 +52,16 @@ results/models/*
 !results/models/phase_3_model_b_geometry_plus_linkers_plus_cif_0.1bar.joblib
 !results/models/phase_3_model_b_geometry_plus_linkers_plus_cif_0.5bar.joblib
 !results/models/phase_3_model_b_geometry_plus_linkers_plus_cif_2.5bar.joblib
+!results/frozen_models/
+results/frozen_models/*
+!results/frozen_models/phase3-model-b-v1/
+results/frozen_models/phase3-model-b-v1/*
+!results/frozen_models/phase3-model-b-v1/manifest.yaml
+!results/frozen_models/phase3-model-b-v1/phase_3_model_b_geometry_plus_linkers_plus_cif_0.01bar.joblib
+!results/frozen_models/phase3-model-b-v1/phase_3_model_b_geometry_plus_linkers_plus_cif_0.05bar.joblib
+!results/frozen_models/phase3-model-b-v1/phase_3_model_b_geometry_plus_linkers_plus_cif_0.1bar.joblib
+!results/frozen_models/phase3-model-b-v1/phase_3_model_b_geometry_plus_linkers_plus_cif_0.5bar.joblib
+!results/frozen_models/phase3-model-b-v1/phase_3_model_b_geometry_plus_linkers_plus_cif_2.5bar.joblib
+!results/frozen_models/phase3-model-b-v1/pre_freeze_environment.txt
+!results/frozen_models/phase3-model-b-v1/validation.md
 docs/archive/results_archive/

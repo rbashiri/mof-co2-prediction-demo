@@ -28,16 +28,14 @@ Phase 3 descriptors are also excluded from Model A's linker feature set.
 **Frozen baseline:** `phase3-model-b-v1`. The
 [versioned manifest](../docs/PHASE3/phase3-model-b-v1.yaml) records the exact
 five artifacts, ordered 48-feature schema, dataset checksum, recomputed
-metrics, and tested environment. A verified local bundle is preserved under
-`results/frozen_models/phase3-model-b-v1/`, outside Git. Never overwrite this
+metrics, and tested environment. The complete versioned bundle is committed
+under `results/frozen_models/phase3-model-b-v1/`. Never overwrite this
 version; future retraining must produce a new version.
 
-**Where collaborators can find the model:** clone the repository to get the
-five final `.joblib` files in `results/models/`; these are the only models
-needed by the app. Check each file against the manifest before loading. The
-complete versioned bundle, including environment and validation records,
-remains in `results/frozen_models/phase3-model-b-v1/` locally and is not
-included in Git. Older experiment outputs are archived locally in
+**Where collaborators can find the model:** clone the repository to get both
+the frozen bundle and the five app-ready `.joblib` files in `results/models/`.
+Check each file against the manifest before loading. Older experiment outputs
+are archived locally in
 `docs/archive/results_archive/` and are not needed by collaborators.
 
 We selected **Phase 3 Model B (geometry + linkers + CIF descriptors)** for
