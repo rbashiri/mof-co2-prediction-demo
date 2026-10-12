@@ -32,17 +32,13 @@ metrics, and tested environment. A verified local bundle is preserved under
 `results/frozen_models/phase3-model-b-v1/`, outside Git. Never overwrite this
 version; future retraining must produce a new version.
 
-**Where collaborators can find the model:** the model binaries are not in
-GitHub. Download the five `.joblib` files from the shared
-[data_mof_demo OneDrive folder](https://1drv.ms/f/c/ab0bbacec1d386eb/IgDJcymaZGwpR7fG_rqk97GXAcGskJ7--PZfOQ6_GWqbcFA?e=orssqL)
-and copy them into `results/models/`, or set `MOF_MODELS_DIR` to their
-directory. Check each file against the manifest before loading. The local
-versioned bundle remains in `results/frozen_models/phase3-model-b-v1/`; its
-online copy has not been verified. If the five files or versioned bundle are
-not visible in OneDrive, ask the owner to upload or share them.
-For clarity, `results/models/` is reserved for those five files used by the
-app; older experiment outputs are archived locally in
-`docs/archive/results_archive/`.
+**Where collaborators can find the model:** clone the repository to get the
+five final `.joblib` files in `results/models/`; these are the only models
+needed by the app. Check each file against the manifest before loading. The
+complete versioned bundle, including environment and validation records,
+remains in `results/frozen_models/phase3-model-b-v1/` locally and is not
+included in Git. Older experiment outputs are archived locally in
+`docs/archive/results_archive/` and are not needed by collaborators.
 
 We selected **Phase 3 Model B (geometry + linkers + CIF descriptors)** for
 the web demo because it achieved higher test R2 than Model A across all five
@@ -71,12 +67,10 @@ or descriptor extraction.
 Folder contents are updated manually by the project owner. If access is
 restricted, request permission from the owner.
 
-The shared bundle contains `data/processed/` and `models/`. Copy its dataset
-files into this repository's `data/processed/`, and copy its model files into
-`results/models/` (or the locations configured in `configs/config.yaml`).
-The five `phase_3_model_b_geometry_plus_linkers_plus_cif_*.joblib` files are
-the selected Phase 3 models. The `phase1_xgboost_*.joblib` files are retained
-only as baseline artifacts and are not used by the current app.
+Download the prepared datasets from the shared bundle and copy them into
+`data/processed/`. The final five Phase 3 Model B files are already included
+in `results/models/` in GitHub. The `phase1_xgboost_*.joblib` files are
+retained only as baseline artifacts and are not used by the current app.
 
 | File | Use |
 |------|-----|

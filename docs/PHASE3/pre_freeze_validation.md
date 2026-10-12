@@ -73,7 +73,10 @@ All filenames below are relative to `results/models/`.
 
 Reference dataset: `data/processed/hmof_phase3_structure_descriptors.csv`.
 SHA-256: `213bb407c1286bbeebb39df86c8c092a1b18d70c5410a724f32397400a84942c`.
-Models and datasets are distributed separately, not added to Git.
+At the time of this validation, models and datasets were distributed separately
+and were not added to Git. The five final Phase 3 Model B app copies are now
+committed under `results/models/`; prepared datasets and the full frozen bundle
+remain outside Git.
 
 ## Native and browser limitations
 

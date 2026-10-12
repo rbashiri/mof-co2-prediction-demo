@@ -33,10 +33,10 @@ The corrected baseline is now frozen as **phase3-model-b-v1** in the
 [manifest](../docs/PHASE3/phase3-model-b-v1.yaml). Its local distribution
 folder is `results/frozen_models/phase3-model-b-v1/`: five unchanged model
 copies, `manifest.yaml`, `pre_freeze_environment.txt`, and `validation.md`.
-Models remain outside Git; the owner must upload this versioned folder to
-the shared storage manually. The online copy has not been verified.
+The app-ready copies of the five final models are committed in
+`results/models/`; the full versioned bundle remains local and outside Git.
 
-Verify each downloaded model against the manifest SHA-256 before loading.
+Verify each model against the manifest SHA-256 before loading.
 The existing app paths remain unchanged. To use the versioned local bundle,
 set `MOF_MODELS_DIR` to its directory before starting the app. This freeze
 identifies the tested baseline, not a completed hosted deployment. Native
@@ -62,21 +62,20 @@ phase_3_model_b_geometry_plus_linkers_plus_cif_0.5bar.joblib
 phase_3_model_b_geometry_plus_linkers_plus_cif_2.5bar.joblib
 ```
 
-Before integrating them, record their exact feature names/order, descriptor
-definitions and units, dependency versions, and evaluation metrics. Only load
-trusted joblib artifacts; deserialization can execute code. Data and models
-are distributed separately from GitHub.
+Before integrating new or retrained models, record their exact feature
+names/order, descriptor definitions and units, dependency versions, and
+evaluation metrics. Only load trusted joblib artifacts; deserialization can
+execute code. Prepared datasets are distributed separately from GitHub.
 
 Download the prepared artifacts from
 [data_mof_demo on OneDrive](https://1drv.ms/f/c/ab0bbacec1d386eb/IgDJcymaZGwpR7fG_rqk97GXAcGskJ7--PZfOQ6_GWqbcFA?e=orssqL).
-The owner uploads bundle updates manually. Copy the five frozen
-`phase_3_model_b_geometry_plus_linkers_plus_cif_*.joblib` files into
-`results/models/`, and copy dataset files into `data/processed/`, unless
-alternative paths are configured. Do not copy the other experiment models
-into `results/models/`; older experiment outputs are archived locally in
-`docs/archive/results_archive/`. Request access from the owner if needed. With
-the selected saved models available, retraining is not required for interface
-integration.
+Copy the prepared dataset files into `data/processed/`, unless alternative
+paths are configured. The five final `phase_3_model_b_geometry_plus_linkers_plus_cif_*.joblib`
+files are already in `results/models/` after cloning; do not copy the other
+experiment models into that folder. Older experiment outputs are archived
+locally in `docs/archive/results_archive/`. Request access to the OneDrive
+dataset from the owner if needed. With the selected saved models available,
+retraining is not required for interface integration.
 
 ## 2. Define and validate inputs
 

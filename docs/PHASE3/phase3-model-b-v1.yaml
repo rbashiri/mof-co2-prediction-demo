@@ -206,6 +206,8 @@ validation:
   full_browser_upload_download_review_complete: false
 distribution:
   local_bundle: results/frozen_models/phase3-model-b-v1
-  models_in_git: false
+  app_models_in_git: true
+  app_models_path: results/models
+  full_bundle_in_git: false
   policy: Never overwrite this version. Changed models require a new version. Verify
     checksums before use and load only trusted artifacts.

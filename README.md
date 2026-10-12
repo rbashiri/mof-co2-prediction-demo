@@ -22,17 +22,16 @@ the checks and remaining deployment limitations, and the
 [Phase 3 comparison notebook](notebook/phase_3/phase3D_xgboost_controlled_comparison.ipynb)
 shows the model comparison.
 
-**Where to get the model files:** the five `.joblib` files are not stored in
-GitHub. Download them from the shared
-[data_mof_demo OneDrive folder](https://1drv.ms/f/c/ab0bbacec1d386eb/IgDJcymaZGwpR7fG_rqk97GXAcGskJ7--PZfOQ6_GWqbcFA?e=orssqL)
-and put them in `results/models/`, or set `MOF_MODELS_DIR` to their folder.
-Verify their SHA-256 values against the manifest before loading. The frozen
-local bundle is kept at `results/frozen_models/phase3-model-b-v1/`; it is
-excluded from Git. `results/models/` contains only the five files needed by
-the app; old experiment outputs are kept locally in the ignored
-`docs/archive/results_archive/` folder. The online copy of this versioned
-bundle has not yet been verified, so contact the owner if the model files are
-not available in the shared folder.
+**Where to get the model files:** the five final `.joblib` files are included
+in GitHub under `results/models/` and are ready to use after cloning the
+repository. Verify their SHA-256 values against the manifest before loading.
+The complete frozen bundle, including environment and validation records, is
+kept locally at `results/frozen_models/phase3-model-b-v1/` and is excluded
+from Git. `results/models/` contains only the five files needed by the app;
+old experiment outputs are kept locally in the ignored
+`docs/archive/results_archive/` folder. The prepared datasets are shared
+separately through
+[data_mof_demo on OneDrive](https://1drv.ms/f/c/ab0bbacec1d386eb/IgDJcymaZGwpR7fG_rqk97GXAcGskJ7--PZfOQ6_GWqbcFA?e=orssqL).
 
 The [hackathon task and ownership plan](docs/hackathon_tasks_and_ownership.md)
 targets a prepared setup by October 17, 2026, including an LLM summary,

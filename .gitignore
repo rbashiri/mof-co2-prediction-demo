@@ -44,6 +44,12 @@ mlartifacts/
 *.joblib
 *.onnx
 *.skops
-results/models/
-results/
+results/*
+!results/models/
+results/models/*
+!results/models/phase_3_model_b_geometry_plus_linkers_plus_cif_0.01bar.joblib
+!results/models/phase_3_model_b_geometry_plus_linkers_plus_cif_0.05bar.joblib
+!results/models/phase_3_model_b_geometry_plus_linkers_plus_cif_0.1bar.joblib
+!results/models/phase_3_model_b_geometry_plus_linkers_plus_cif_0.5bar.joblib
+!results/models/phase_3_model_b_geometry_plus_linkers_plus_cif_2.5bar.joblib
 docs/archive/results_archive/
