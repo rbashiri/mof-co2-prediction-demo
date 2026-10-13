@@ -1,0 +1,35 @@
+FROM python:3.12.3-bookworm
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        git \
+        make \
+        cmake \
+        gcc-11 \
+        g++-11 \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV CC=gcc-11 \
+    CXX=g++-11
+
+RUN git clone https://github.com/snurr-group/mofid.git /opt/mofid \
+    && git -C /opt/mofid checkout --detach 36873683083c7bc62c1da2062df2833adc35b48a
+
+WORKDIR /opt/mofid
+
+RUN cmake -S openbabel -B openbabel/build \
+        -DCMAKE_INSTALL_PREFIX=/opt/mofid/openbabel/installed \
+        -DEIGEN3_INCLUDE_DIR=/opt/mofid/eigen \
+        -DENABLE_TESTS=OFF \
+        -DBUILD_GUI=OFF \
+    && cmake --build openbabel/build --parallel 2 \
+    && cmake --install openbabel/build \
+    && cmake -S src -B bin \
+        -DOpenBabel3_DIR=/opt/mofid/openbabel/build \
+        -DBUILD_TESTING=OFF \
+        -DCMAKE_BUILD_TYPE=Release \
+    && cmake --build bin --parallel 2 \
+    && test -x /opt/mofid/bin/sbu
+
+ENV MOF_SBU_PATH=/opt/mofid/bin/sbu

@@ -1,0 +1,19 @@
+# Exclude everything unless explicitly included below.
+**
+
+# Application build inputs.
+!requirements.txt
+!mof_models.py
+!src/
+!src/**
+!configs/
+!configs/config.yaml
+!results/
+!results/models/
+!results/models/*.joblib
+!docker/
+!docker/Dockerfile.app
+
+# Exclude generated Python files even within included folders.
+**/__pycache__/
+**/*.pyc
