@@ -10,7 +10,6 @@ from pathlib import Path
 
 import joblib
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 import shap
 import streamlit as st
@@ -120,7 +119,15 @@ def report_error(message: str, error: Exception) -> None:
 
 def main() -> None:
     st.set_page_config(page_title="MOF CO2 Uptake Predictor", layout="wide")
-    st.title("MOF CO₂ Uptake Predictor")
+    st.title("Welcome to the MOF CO₂ Uptake Predictor")
+    st.write("Upload a CIF and enter its four matching geometry values.")
+    with st.expander("About these predictions"):
+        st.write(
+            "Geometry values must describe the uploaded structure and are supplied "
+            "by you, not calculated by this app. The models predict simulated "
+            "hMOF uptake; predictions are not experimental measurements and "
+            "accuracy on other MOF families has not been established."
+        )
     try:
         settings = load_app_settings()
         paths = tuple(str(MODELS_DIR / settings["models"][str(p)]) for p in PRESSURES)
@@ -130,41 +137,6 @@ def main() -> None:
         return
     names = models[PRESSURES[0]].get_booster().feature_names
     assert names is not None
-    st.caption(settings["model_label"])
-    st.info(
-        "Supply geometry for the same structure as the CIF. Geometry is not "
-        "calculated here (no Zeo++). These models predict simulated hMOF uptake."
-    )
-    mode = st.sidebar.radio("Input mode", ["Geometry + CIF", "Prepared feature CSV"])
-
-    if mode == "Prepared feature CSV":
-        with st.sidebar:
-            uploaded_csv = st.file_uploader(
-                "CSV containing all 48 Phase 3 model features", type=["csv"],
-            )
-        if uploaded_csv is None:
-            st.info("Upload prepared features to obtain batch predictions.")
-            return
-        try:
-            data = pd.read_csv(uploaded_csv)
-            missing = sorted(set(names) - set(data.columns))
-            if missing:
-                raise ValueError(f"Missing model features: {missing}")
-            if data.empty:
-                raise ValueError("The CSV contains no rows.")
-            features = data[names].apply(pd.to_numeric, errors="raise")
-            if not np.isfinite(features.to_numpy(dtype=float)).all():
-                raise ValueError("All 48 features must contain finite numeric values.")
-            out = data.copy()
-            for pressure in PRESSURES:
-                out[f"CO2_uptake_{pressure}bar_molkg"] = models[pressure].predict(features)
-        except (ValueError, pd.errors.ParserError, UnicodeError) as error:
-            report_error("Invalid prepared-feature CSV", error)
-            return
-        st.dataframe(out)
-        st.download_button("Download predictions", out.to_csv(index=False), "predictions.csv")
-        return
-
     with st.sidebar:
         geometry = {
             name: st.number_input(
@@ -177,7 +149,6 @@ def main() -> None:
         uploaded = st.file_uploader("CIF for this MOF", type=["cif"])
         submitted = st.button("Extract descriptors and predict")
     if uploaded is None:
-        st.info("Enter your four geometry values and upload a CIF to begin.")
         return
     cif_bytes = uploaded.getvalue()
     request = (cif_bytes, tuple(geometry.items()), paths)
@@ -205,13 +176,13 @@ def main() -> None:
             report_error("CIF processing or prediction failed", error)
             return
     if previous is None or previous[0] != request:
-        st.info("Click 'Extract descriptors and predict' for the current inputs.")
+        st.write("Click 'Extract descriptors and predict' for the current inputs.")
         return
     _, features, predictions = previous
     left, right = st.columns(2)
     with left:
         st.subheader("Predicted CO₂ uptake")
-        st.dataframe(predictions, hide_index=True)
+        st.table(predictions, hide_index=True)
         st.line_chart(predictions, x="Pressure (bar)", y="Predicted CO2 uptake (mol/kg)")
         st.download_button("Download predictions", predictions.to_csv(index=False), "predictions.csv")
         with st.expander("Inspect the 48 model input features"):

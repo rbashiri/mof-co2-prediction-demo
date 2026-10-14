@@ -16,9 +16,9 @@ replace XGBoost.
 
 | Component | Current state | Phase 3 target |
 |-----------|---------------|----------------|
-| Interface | Four geometry inputs + CIF upload; prepared 48-feature CSV batch mode | Broader browser and deployment validation |
+| Interface | Four geometry inputs + CIF upload; scientific limitations in a collapsed section | Broader browser and deployment validation |
 | Models | Five configured Phase 3 Model B joblib models; baseline frozen as phase3-model-b-v1 | Distribute versioned bundle and complete native deployment recipe |
-| Predictions | Five pressures, table/chart/download for geometry + CIF; CSV batch download | Preserve these outputs |
+| Predictions | Five pressures, non-scrolling table/chart/CSV download for geometry + CIF | Preserve these outputs |
 | SHAP | Waterfall for the geometry + CIF row at a selected pressure | Explain the same Phase 3 model and feature row used for prediction |
 | LLM summary | Not implemented; provider undecided | Optional, grounded summary of predictions and SHAP |
 | Deployment | Local prototype; Dockerfile is only a base image | Tested, reproducible deployment with separately supplied model artifacts |
@@ -83,7 +83,7 @@ retraining is not required for interface integration.
 Phase 3 requires **geometry + linker + CIF/metal descriptors**, not just four
 geometry values. Agree on the input experience before implementing it:
 
-- CSV upload of already prepared feature rows is the simplest initial path.
+- The demo accepts a CIF and its four matching geometry values; prepared-feature CSV upload is not exposed.
 - Manual entry requires the complete feature schema; alternatively, selecting
   an existing MOF could populate a prepared row.
 - The agreed next interface accepts four supplied geometry values and a CIF.
@@ -217,7 +217,7 @@ service is unavailable; show any service failure explicitly.
 
 ## 6. Test and deploy
 
-- Add interface tests covering valid inputs, invalid CSVs, missing artifacts,
+- Add interface tests covering valid inputs, invalid CIFs, missing artifacts,
   and consistency between prediction and explanation.
 - Verify the interface in a browser, including uploads and downloads.
 - Review runtime dependencies and complete the Dockerfile if using containers.
@@ -261,19 +261,19 @@ The app needs the five corrected Phase 3 Model B artifacts described above in
 the configured models directory. Reference datasets are not required for
 geometry + CIF inference: users supply their own geometry values.
 
-1. Select **Geometry + CIF**.
-2. Enter LCD and PLD in angstrom, void fraction between 0 and 1, and surface
+1. Enter LCD and PLD in angstrom, void fraction between 0 and 1, and surface
    area in m2/g. These values must describe the uploaded structure.
-3. Upload a CIF and click **Extract descriptors and predict**.
-4. Review predictions, download them, and choose a pressure for SHAP.
+2. Upload a CIF and click **Extract descriptors and predict**.
+3. Review predictions, download them, and choose a pressure for SHAP.
 
-Alternatively, select **Prepared feature CSV** for batch predictions. Supply
-all 48 model features as finite numeric columns. Identifiers can be included
-for traceability but are not passed to the models. Batch SHAP is not yet
-implemented.
+The page shows a welcome heading and short upload instructions. Scientific
+limitations remain available under **About these predictions**, collapsed by
+default. All five prediction rows appear in a static table without an internal
+scrollbar. Prepared-feature CSV batch input is no longer exposed; prediction
+CSV downloads remain available.
 
 The `app` section of [configs/config.yaml](../configs/config.yaml) controls
-model filenames, the displayed model label, an optional `sbu_path`, and
+model filenames, the retained model label metadata, an optional `sbu_path`, and
 `extraction_timeout_seconds`. `MOF_SBU_PATH` overrides `app.sbu_path`; relative
 configured executable paths resolve against the repository root. Model
 directories still use the existing `paths.models_dir` / `MOF_MODELS_DIR`.

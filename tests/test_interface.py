@@ -21,7 +21,13 @@ def test_app_starts_without_upload():
     assert not app.exception
     assert not app.error
     assert len(app.number_input) == 4
-    assert "Phase 3 Model B" in app.caption[0].value
+    assert app.title[0].value == "Welcome to the MOF CO₂ Uptake Predictor"
+    assert not app.radio
+    assert not app.caption
+    assert not app.info
+    assert app.expander[0].label == "About these predictions"
+    assert not app.expander[0].proto.expanded
+    assert not app.table
     assert not app.dataframe
 
 
@@ -48,12 +54,33 @@ def test_upload_tempfile_is_removed(monkeypatch):
     assert not paths[0].exists()
 
 
-def test_prepared_csv_reports_missing_features():
-    with patch("streamlit.file_uploader", side_effect=lambda *a, **k: io.BytesIO(b"lcd\n1\n")):
+def test_predictions_use_static_table_and_preserve_download_and_shap():
+    def build(path, geometry, *, feature_names, **kwargs):
+        return pd.DataFrame([[0.0] * len(feature_names)], columns=feature_names)
+
+    with (
+        patch("streamlit.file_uploader", side_effect=lambda *a, **k: io.BytesIO(b"CIF")),
+        patch("src.phase3_features.build_phase3_features", side_effect=build),
+    ):
         app = AppTest.from_file(APP).run(timeout=60)
-        app.sidebar.radio[0].set_value("Prepared feature CSV").run(timeout=60)
+        app.button[0].click().run(timeout=120)
         assert not app.exception
-        assert any("Missing model features" in error.value for error in app.error)
+        assert not app.error
+        assert app.table[0].value["Pressure (bar)"].tolist() == [0.01, 0.05, 0.1, 0.5, 2.5]
+        assert app.table[0].value.shape == (5, 2)
+        assert app.dataframe[0].value.shape == (1, 48)
+        assert len(app.get("download_button")) == 1
+        assert app.get("download_button")[0].proto.label == "Download predictions"
+        assert len(app.get("image")) == 1
+        app.selectbox[0].set_value(0.5).run(timeout=60)
+        assert not app.exception
+        assert not app.error
+        assert len(app.table) == 1
+        assert len(app.get("image")) == 1
+        app.number_input[0].set_value(12.0).run(timeout=60)
+        assert not app.table
+        assert not app.dataframe
+        assert not app.get("download_button")
 
 
 def test_real_cif_predictions_shap_and_stale_results():
@@ -70,10 +97,10 @@ def test_real_cif_predictions_shap_and_stale_results():
         app.button[0].click().run(timeout=120)
         assert not app.exception
         assert not app.error
-        predictions = app.dataframe[0].value
+        predictions = app.table[0].value
         assert predictions["Pressure (bar)"].tolist() == [0.01, 0.05, 0.1, 0.5, 2.5]
         assert len(predictions) == 5
-        assert app.dataframe[1].value.shape == (1, 48)
+        assert app.dataframe[0].value.shape == (1, 48)
         for index, pressure in enumerate([0.01, 0.05, 0.1, 0.5, 2.5]):
             model = joblib.load(
                 MODELS_DIR /
@@ -89,4 +116,5 @@ def test_real_cif_predictions_shap_and_stale_results():
         assert not app.exception
         assert not app.error
         app.number_input[0].set_value(12.0).run(timeout=60)
+        assert not app.table
         assert not app.dataframe
