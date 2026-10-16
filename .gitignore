@@ -5,6 +5,10 @@ data/
 *.csv
 *.parquet
 
+# Small sample inputs included for the demo
+!notebook/sample/mof_co2_geometry_10.csv
+!notebook/sample/cif_files/*.cif
+
 # local Python environment, different on every machine, often large
 .venv/
 __pycache__/

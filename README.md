@@ -12,6 +12,13 @@ The project documentation is organized into two guides:
 The app uses Phase 3 Model B with supplied geometry and CIF-derived
 descriptors. See the web guide for local MOFid setup and usage.
 
+## Sample files
+
+The [sample folder](notebook/sample/) includes a
+[notebook](notebook/sample/sample.ipynb), a
+[10-MOF geometry table](notebook/sample/mof_co2_geometry_10.csv), and the
+corresponding [CIF structures](notebook/sample/cif_files/).
+
 ## Phase 3 model and notebook
 
 The selected model is the frozen **phase3-model-b-v1** baseline. Its
