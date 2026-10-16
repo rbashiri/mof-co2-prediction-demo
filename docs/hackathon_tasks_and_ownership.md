@@ -56,8 +56,11 @@ deployment acceptance.
 
 ## LLM summary is included in the hackathon scope
 
-The provider is undecided; no LLM integration currently exists. Decide it
-together at kickoff, then the collaborator implements it.
+The provider is undecided; no LLM integration currently exists. A local,
+explicitly rule-based summary is now available as a preparation step; see the
+[review workflow](../Readme/readme_webinterface.md#stage-1-local-summary-implemented).
+It does not complete the LLM integration or scientific approval tasks. Agree
+the provider and data policy together before implementing external calls.
 
 ### Scientific content contract
 

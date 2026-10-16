@@ -20,7 +20,7 @@ replace XGBoost.
 | Models | Five configured Phase 3 Model B joblib models; baseline frozen as phase3-model-b-v1 | Distribute versioned bundle and complete native deployment recipe |
 | Predictions | Five pressures, non-scrolling table/chart/CSV download for geometry + CIF | Preserve these outputs |
 | SHAP | Waterfall for the geometry + CIF row at a selected pressure | Explain the same Phase 3 model and feature row used for prediction |
-| LLM summary | Not implemented; provider undecided | Optional, grounded summary of predictions and SHAP |
+| Scientific summary | Local rule-based summary from predictions and matching SHAP; no external calls | Add an optional LLM after scientific review and provider/data-policy agreement |
 | Deployment | Local prototype; Dockerfile is only a base image | Tested, reproducible deployment with separately supplied model artifacts |
 
 The current [app](../src/app.py) is a **local Phase 3 demo**. It requires
@@ -199,11 +199,65 @@ verified adsorption mechanisms.
 
 ## 5. Add an optional scientific summary
 
-The team has selected the LLM summary for the hackathon delivery scope.
-It remains unimplemented; the provider and data policy must be agreed
-together. See the [task and ownership plan](../docs/hackathon_tasks_and_ownership.md)
-for its scientific contract, acceptance tests, owners, and deadline.
-The core prediction/SHAP workflow remains independent of LLM availability.
+### Stage 1: local summary (implemented)
+
+After generating predictions, choose a SHAP pressure and click **Generate
+scientific summary**. The app displays an 80-150-word paragraph labelled
+**Rule-based summary - not AI-generated**. No API key, new dependencies,
+network request, retraining, or separate backend is needed.
+
+[scientific_summary.py](../src/scientific_summary.py) checks the five pressure
+predictions, the matching feature row, all 48 signed contributions, and SHAP
+additivity before describing the strongest positive and negative contributions.
+Numbers are displayed with six significant digits; the prediction table and
+download retain their existing behavior. Negative or non-monotonic predictions
+are flagged, not clipped or smoothed.
+
+Generation requires an explicit click. Changing the CIF, geometry, configured
+model context, or SHAP pressure clears the summary; generate it again for the
+new context. A generation error is shown explicitly and the button can be
+clicked to retry. Predictions and SHAP remain independent of summary failures.
+If SHAP fails, summary generation is disabled.
+
+To review the wording:
+
+1. Start the app using the quick-start instructions below.
+2. Upload `hMOF-0.cif` from [sample CIFs](../notebook/sample/cif_files/).
+   Enter its four geometry values from the matching row of the
+   [sample table](../notebook/sample/mof_co2_geometry_10.csv).
+   The table's uptake columns are reference data, not new app predictions.
+3. Click **Extract descriptors and predict**, choose a SHAP pressure, then
+   **Generate scientific summary**.
+4. Compare all five uptake numbers against the app table, and compare the
+   named contributions, signs, and baseline against SHAP. Check the simulated
+   data and non-causality limitations.
+5. Repeat for `hMOF-10` and `hMOF-100`, using each structure's own geometry.
+   Change pressure and geometry to confirm the old summary disappears.
+
+Focused validation (headless plotting):
+
+```bash
+MPLBACKEND=Agg python -m pytest tests/test_scientific_summary.py tests/test_interface.py -q
+```
+
+The three reference-row tests use real frozen models at all five pressures
+when the prepared Phase 3 dataset is available. They validate numerical
+consistency, not new CIF extraction or scientific approval. Native MOFid is
+still required for uploads.
+
+### Stage 2: real LLM (not implemented)
+
+Proceed after Susan has reviewed the three examples and accepted the units,
+wording, signs, limitations, and unchanged predictions. Agree on provider,
+model, budget, credentials owner, and allowed data before adding any API call.
+Keep the local mode explicitly labelled, separate from AI-generated text.
+Mocked provider-response tests belong to this stage; Stage 1 tests mock local
+summary failures, not a nonexistent LLM.
+
+The team has selected the LLM summary for the hackathon delivery scope. See
+the [task and ownership plan](../docs/hackathon_tasks_and_ownership.md) for its
+scientific contract, acceptance tests, owners, and deadline. The core
+prediction/SHAP workflow must remain independent of LLM availability.
 
 Choose a provider together before implementation. Decide on local versus
 hosted execution, costs, credentials, and what information may leave the

@@ -21,10 +21,10 @@ if not __package__:
 
 from src.paths import CONFIG_PATH, MODELS_DIR, PROJECT_ROOT
 from src.phase3_features import build_phase3_features
+from src.scientific_summary import PRESSURES, SUMMARY_LABEL, generate_summary
 from src.train import GEOMETRY_COLUMNS
 
 LOGGER = logging.getLogger(__name__)
-PRESSURES = [0.01, 0.05, 0.1, 0.5, 2.5]
 GEOMETRY_LABELS = {
     "lcd": "Largest cavity diameter (angstrom)",
     "pld": "Pore limiting diameter (angstrom)",
@@ -106,9 +106,8 @@ def predict_all(models: dict[float, XGBRegressor], features: pd.DataFrame) -> pd
     })
 
 
-def explain(model: XGBRegressor, features: pd.DataFrame):
-    explanation = shap.TreeExplainer(model)(features)
-    shap.plots.waterfall(explanation[0], show=False)
+def explain(explanation: shap.Explanation):
+    shap.plots.waterfall(explanation, show=False)
     return plt.gcf()
 
 
@@ -137,6 +136,7 @@ def main() -> None:
         return
     names = models[PRESSURES[0]].get_booster().feature_names
     assert names is not None
+    names = list(names)
     with st.sidebar:
         geometry = {
             name: st.number_input(
@@ -149,11 +149,13 @@ def main() -> None:
         uploaded = st.file_uploader("CIF for this MOF", type=["cif"])
         submitted = st.button("Extract descriptors and predict")
     if uploaded is None:
+        st.session_state.pop("phase3_summary", None)
         return
     cif_bytes = uploaded.getvalue()
-    request = (cif_bytes, tuple(geometry.items()), paths)
+    request = (cif_bytes, tuple(geometry.items()), paths, settings["model_label"])
     previous = st.session_state.get("phase3_result")
     if submitted:
+        st.session_state.pop("phase3_summary", None)
         st.session_state.pop("phase3_result", None)
         try:
             if not cif_bytes:
@@ -176,6 +178,7 @@ def main() -> None:
             report_error("CIF processing or prediction failed", error)
             return
     if previous is None or previous[0] != request:
+        st.session_state.pop("phase3_summary", None)
         st.write("Click 'Extract descriptors and predict' for the current inputs.")
         return
     _, features, predictions = previous
@@ -190,13 +193,40 @@ def main() -> None:
     with right:
         st.subheader("SHAP explanation")
         pressure = st.selectbox("Pressure (bar)", PRESSURES, index=2)
+        explanation = None
         try:
-            fig = explain(models[pressure], features)
+            explanation = shap.TreeExplainer(models[pressure])(features)[0]
+            fig = explain(explanation)
             st.pyplot(fig)
             plt.close(fig)
         except (ValueError, RuntimeError) as error:
+            explanation = None
             report_error("SHAP explanation failed", error)
         st.caption("SHAP describes model contributions, not proven chemical mechanisms.")
+
+    context = (request, pressure)
+    saved_summary = st.session_state.get("phase3_summary")
+    if explanation is None or (saved_summary is not None and saved_summary[0] != context):
+        st.session_state.pop("phase3_summary", None)
+    st.subheader("Scientific summary")
+    st.caption(f"{SUMMARY_LABEL}. Runs locally; no API key or external data sharing.")
+    if st.button(
+        "Generate scientific summary", key="generate_scientific_summary",
+        disabled=explanation is None,
+    ):
+        st.session_state.pop("phase3_summary", None)
+        try:
+            if explanation is None:
+                raise ValueError("A matching SHAP explanation is required.")
+            with st.spinner("Summarizing predictions and SHAP..."):
+                summary = generate_summary(predictions, features, explanation, pressure)
+            st.session_state["phase3_summary"] = (context, summary)
+        except (ValueError, TypeError, RuntimeError) as error:
+            report_error("Summary generation failed", error)
+    saved_summary = st.session_state.get("phase3_summary")
+    if saved_summary is not None:
+        st.text(saved_summary[1])
+        st.caption("Draft for scientific review, not an approved scientific interpretation.")
 
 
 if __name__ == "__main__":

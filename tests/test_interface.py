@@ -11,6 +11,7 @@ from streamlit.testing.v1 import AppTest
 
 from src.app import features_from_upload
 from src.paths import PHASE3_DATA_PATH, MODELS_DIR
+from src.scientific_summary import generate_summary
 from src.train import GEOMETRY_COLUMNS
 
 APP = str(Path(__file__).resolve().parents[1] / "src" / "app.py")
@@ -81,6 +82,86 @@ def test_predictions_use_static_table_and_preserve_download_and_shap():
         assert not app.table
         assert not app.dataframe
         assert not app.get("download_button")
+
+
+def test_summary_click_generation_invalidation_failure_and_retry(tmp_path):
+    upload = [b"CIF"]
+
+    def build(path, geometry, *, feature_names, **kwargs):
+        return pd.DataFrame([[0.0] * len(feature_names)], columns=feature_names)
+
+    with (
+        patch("streamlit.file_uploader", side_effect=lambda *a, **k: io.BytesIO(upload[0])),
+        patch("src.phase3_features.build_phase3_features", side_effect=build),
+        patch(
+            "src.scientific_summary.generate_summary",
+            wraps=generate_summary,
+        ) as generate,
+    ):
+        app = AppTest.from_file(APP).run(timeout=60)
+        app.button[0].click().run(timeout=120)
+        assert not generate.called
+        assert not app.text
+        app.button(key="generate_scientific_summary").click().run(timeout=60)
+        assert not app.exception
+        assert not app.error
+        assert generate.call_count == 1
+        assert 80 <= len(app.text[0].value.split()) <= 150
+        assert any("not AI-generated" in caption.value for caption in app.caption)
+        app.selectbox[0].set_value(0.5).run(timeout=60)
+        assert not app.text
+        app.selectbox[0].set_value(0.1).run(timeout=60)
+        assert not app.text
+        generate.side_effect = ValueError("SHAP additivity failed")
+        app.button(key="generate_scientific_summary").click().run(timeout=60)
+        assert any("Summary generation failed" in error.value for error in app.error)
+        assert len(app.table) == 1
+        assert len(app.get("image")) == 1
+        assert not app.text
+        generate.side_effect = None
+        app.button(key="generate_scientific_summary").click().run(timeout=60)
+        assert not app.error
+        assert app.text
+        app.number_input[0].set_value(12.0).run(timeout=60)
+        assert not app.text
+        app.number_input[0].set_value(0.0).run(timeout=60)
+        assert not app.text
+        app.button(key="generate_scientific_summary").click().run(timeout=60)
+        assert app.text
+        upload[0] = b"ANOTHER CIF"
+        app.run(timeout=60)
+        assert not app.text
+        assert not app.table
+        upload[0] = b"CIF"
+        app.run(timeout=60)
+        assert not app.text
+        app.button(key="generate_scientific_summary").click().run(timeout=60)
+        assert app.text
+        with patch("shap.TreeExplainer", side_effect=ValueError("SHAP unavailable")):
+            app.run(timeout=60)
+            assert any("SHAP explanation failed" in error.value for error in app.error)
+            assert app.button(key="generate_scientific_summary").disabled
+            assert not app.text
+            assert len(app.table) == 1
+        app.run(timeout=60)
+        app.button(key="generate_scientific_summary").click().run(timeout=60)
+        assert app.text
+        for model in MODELS_DIR.glob("*.joblib"):
+            (tmp_path / model.name).symlink_to(model)
+        with patch("src.paths.MODELS_DIR", tmp_path):
+            app.run(timeout=60)
+            assert not app.exception
+            assert not app.text
+            assert not app.table
+        app.run(timeout=60)
+        assert not app.text
+        app.button(key="generate_scientific_summary").click().run(timeout=60)
+        assert app.text
+        with patch("streamlit.file_uploader", return_value=None):
+            app.run(timeout=60)
+            assert not app.text
+        app.run(timeout=60)
+        assert not app.text
 
 
 def test_real_cif_predictions_shap_and_stale_results():
