@@ -1,0 +1,71 @@
+name: Publish Docker images
+
+on:
+  push:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: read
+    env:
+      IMAGE: ripunjaykumar0902/mof-co2
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Docker metadata for MOFid base
+        id: meta-mofid
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=sha,prefix=mofid-sha-
+            type=ref,event=branch,prefix=mofid-
+            type=raw,value=mofid-demo,enable={{is_default_branch}}
+
+      - name: Build and push MOFid base
+        id: build-mofid
+        uses: docker/build-push-action@v6
+        with:
+          context: ./docker
+          file: ./docker/Dockerfile.mofid
+          push: true
+          tags: ${{ steps.meta-mofid.outputs.tags }}
+          labels: ${{ steps.meta-mofid.outputs.labels }}
+          cache-from: type=gha,scope=mofid-base
+          cache-to: type=gha,mode=max,scope=mofid-base
+
+      - name: Docker metadata for app
+        id: meta-app
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=sha,prefix=sha-
+            type=ref,event=branch
+            type=raw,value=demo,enable={{is_default_branch}}
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push app
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./docker/Dockerfile.app
+          push: true
+          tags: ${{ steps.meta-app.outputs.tags }}
+          labels: ${{ steps.meta-app.outputs.labels }}
+          build-args: |
+            BASE_IMAGE=${{ env.IMAGE }}@${{ steps.build-mofid.outputs.digest }}
+          cache-from: type=gha,scope=mof-co2-app
+          cache-to: type=gha,mode=max,scope=mof-co2-app

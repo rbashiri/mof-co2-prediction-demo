@@ -1,4 +1,5 @@
-FROM mofid-base:demo
+ARG BASE_IMAGE=mofid-base:demo
+FROM ${BASE_IMAGE}
 
 WORKDIR /app
 COPY requirements.txt /app/requirements.txt

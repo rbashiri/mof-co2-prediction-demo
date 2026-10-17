@@ -25,6 +25,35 @@ Build the MOFid image first: the application requires that local base image.
 The root [.dockerignore](../.dockerignore) limits the application build
 context to required files, excluding local environments and datasets.
 
+[Dockerfile.app](Dockerfile.app) accepts `BASE_IMAGE` (default
+`mofid-base:demo`) so local builds stay unchanged while CI can point at a
+pushed base image.
+
+## CI publish to Docker Hub
+
+A GitHub Actions workflow ([`.github/workflows/docker-publish.yml`](../.github/workflows/docker-publish.yml))
+builds both images on every push and publishes them to Docker Hub.
+
+Add these repository secrets:
+
+- `DOCKERHUB_USERNAME`: `ripunjaykumar0902`
+- `DOCKERHUB_TOKEN`: Docker Hub access token with permission to push
+
+Both builds go to the single Hub repository `ripunjaykumar0902/mof-co2`.
+The runnable app uses tags `sha-<sha>` and the branch name. Pushes to the
+default branch also receive `demo` and `latest`. The MOFid base uses the
+same repository with `mofid-` prefixes (`mofid-sha-<sha>`, `mofid-demo`).
+You only need the app tags to pull and run.
+
+```bash
+docker pull ripunjaykumar0902/mof-co2:demo
+docker run --rm -p 127.0.0.1:8501:8501 ripunjaykumar0902/mof-co2:demo
+```
+
+On this `image/publish` branch the app tag is `image-publish` until it is
+merged to `main`. The first MOFid compile can take 15-30 minutes; later
+runs reuse GitHub Actions cache when the base Dockerfile is unchanged.
+
 ## Native fragmentation smoke test
 
 ```bash
@@ -41,6 +70,8 @@ Java-based topology workflow is not included.
 
 ```bash
 docker run --rm -p 127.0.0.1:8501:8501 mof-co2-app:demo
+# after CI publish:
+# docker run --rm -p 127.0.0.1:8501:8501 ripunjaykumar0902/mof-co2:demo
 ```
 
 Open <http://localhost:8501>. For a remote VS Code workspace, forward port
