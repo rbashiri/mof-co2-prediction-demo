@@ -106,9 +106,51 @@ def test_predict_returns_five_finite_pressures(client, monkeypatch):
     assert "Pressure comparison" in data["summary"]
     assert "Low-pressure SHAP (0.01 bar)" in data["summary"]
     assert "Higher-pressure SHAP (2.5 bar)" in data["summary"]
+    assert data["gemini_summary"] is None
+    assert data["gemini_error"] is None
 
     csv_bytes = base64.b64decode(data["predictions_csv"])
     assert b"Pressure" in csv_bytes
+
+
+@pytest.mark.parametrize("fails", [False, True])
+def test_optional_gemini_preserves_prediction_results(client, monkeypatch, fails):
+    from src.gemini_summary import GeminiSummaryError
+
+    def build(path, geometry, *, feature_names, **kwargs):
+        return pd.DataFrame([[0.0] * len(feature_names)], columns=feature_names)
+
+    calls = []
+
+    def generate(uptakes, sections):
+        calls.append((uptakes, sections))
+        if fails:
+            raise GeminiSummaryError("Mock provider unavailable")
+        return "Mock validated draft"
+
+    monkeypatch.setattr("src.api.build_phase3_features", build)
+    monkeypatch.setattr("src.api.generate_gemini_summary", generate)
+    baseline = client.post(
+        "/api/predict", data=geometry_form(), files={"cif": cif_file()},
+    ).json()
+    assert calls == []
+    response = client.post(
+        "/api/predict", data={**geometry_form(), "include_gemini": "true"},
+        files={"cif": cif_file()},
+    )
+    assert response.status_code == 200
+    result = response.json()
+    for key in ("pressures", "shap", "features", "summary", "predictions_csv"):
+        assert result[key] == baseline[key]
+    assert len(calls) == 1
+    assert calls[0][0] == [point["uptake"] for point in result["pressures"]]
+    assert calls[0][1] == result["summary"]
+    if fails:
+        assert result["gemini_summary"] is None
+        assert result["gemini_error"] == "Mock provider unavailable"
+    else:
+        assert result["gemini_summary"] == "Mock validated draft"
+        assert result["gemini_error"] is None
 
 
 def test_temp_cif_file_is_removed(client, monkeypatch):

@@ -20,12 +20,14 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.concurrency import run_in_threadpool
 from xgboost import XGBRegressor
 
 if not __package__:
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from src.paths import CONFIG_PATH, MODELS_DIR, PROJECT_ROOT
+from src.gemini_summary import GeminiSummaryError, generate_gemini_summary
 from src.phase3_features import build_phase3_features
 from src.scientific_summary import PRESSURES, generate_pressure_comparison
 from src.train import GEOMETRY_COLUMNS
@@ -198,6 +200,7 @@ async def predict(
     void_fraction: float = Form(..., ge=0, le=1),
     surface_area_m2g: float = Form(..., ge=0),
     cif: UploadFile = File(...),
+    include_gemini: bool = Form(False),
 ) -> JSONResponse:
     if "startup_error" in _state:
         raise HTTPException(status_code=503, detail={"error": _state["startup_error"]})
@@ -235,6 +238,18 @@ async def predict(
             str(p): _shap_to_dict(explanations[p], names) for p in PRESSURES
         }
         summary = _generate_summary(predictions, features, explanations)
+        gemini_summary = None
+        gemini_error = None
+        if include_gemini:
+            try:
+                gemini_summary = await run_in_threadpool(
+                    generate_gemini_summary,
+                    predictions.iloc[:, 1].tolist(),
+                    summary,
+                )
+            except GeminiSummaryError as exc:
+                LOGGER.warning("Gemini summary failed: %s", exc)
+                gemini_error = str(exc)
 
         csv_buffer = io.StringIO()
         predictions.to_csv(csv_buffer, index=False)
@@ -250,6 +265,8 @@ async def predict(
             "features": {name: float(value) for name, value in features_row.items()},
             "shap": shap_by_pressure,
             "summary": summary,
+            "gemini_summary": gemini_summary,
+            "gemini_error": gemini_error,
             "predictions_csv": csv_base64,
         })
     except (OSError, ValueError, subprocess.SubprocessError) as exc:

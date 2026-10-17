@@ -12,6 +12,61 @@ explanations -> optional LLM scientific summary**
 The LLM writes a summary of model outputs; it does not calculate uptake or
 replace XGBoost.
 
+### React first-version additions
+
+The React interface keeps its existing line chart and adds a five-pressure
+comparison table. Highest and lowest labels use the actual predictions,
+including ties, rather than assuming that uptake increases with pressure.
+Labels use six significant figures; the CSV retains the original values.
+The uptake line chart uses a labeled logarithmic pressure axis to separate
+the low-pressure points. The selected-pressure SHAP chart separates feature
+names, signed bars around a zero line, and numerical values into distinct
+columns. Both charts scroll horizontally on narrow screens to keep labels
+readable; predictions and SHAP values are not changed.
+
+The optional **Include a Gemini Flash draft summary** checkbox sends validated
+uptake values and endpoint SHAP summary sections to Google only when selected.
+No CIF file, filename, full dataset, or model file is included. Predictions,
+SHAP and CSV downloads remain available if Gemini fails; the UI displays the
+failure explicitly. Rule-based sections are retained internally as validated
+Gemini input and in the API response for compatibility, but are not displayed
+in React. The old Streamlit app is unchanged.
+
+Gemini is disabled by default. After your team approves external data sharing,
+configure these server-side environment variables (for example, in Render):
+
+- `GEMINI_ENABLED=true`
+- `GEMINI_API_KEY`: a private API key, never committed or entered in the browser.
+- `GEMINI_MODEL`: a Gemini Flash model ID verified as available to your Google
+  project. No model ID or free quota is assumed; check current provider terms.
+
+The implementation adapts Umer's prompt/request/validation approach into
+`src/gemini_summary.py`; the local `LLM-umer/` review copy is not imported or
+required for deployment. The server has a 25-second request timeout.
+HTTP failures show fixed guidance based on status and recognized provider error
+codes, never raw provider messages, request data, keys, or response metadata.
+HTTP 400 requires checking configuration rather than repeatedly retrying.
+Output
+must be 80-150 words, preserve the five formatted pressure/uptake pairs, avoid
+new numeric values, and avoid placeholder feature names. The paragraph uses
+plain-language labels for the actual endpoint contributors, explaining upward
+and downward pushes on this structure's predicted uptake rather than assuming
+the reader understands SHAP. Scientific descriptor terms such as void fraction
+and pore limiting diameter are preserved. The label glossary supplies vocabulary, not
+evidence of chemistry or importance. General limitations and separate-model
+baseline cautions appear in a fixed **How to read this explanation** note below
+the draft, rather than being required verbatim in every paragraph. Specific
+warnings such as negative or non-monotonic uptake remain in the prompt.
+These checks cannot
+prove correct SHAP interpretation or eliminate unsupported chemical claims;
+all output is labeled as an AI-generated draft for scientific review.
+
+Offline regression tests make no provider requests:
+
+```bash
+python -m pytest tests/test_gemini_summary.py tests/test_api.py
+```
+
 ## Current state versus target
 
 | Component | Current state | Phase 3 target |
@@ -20,7 +75,7 @@ replace XGBoost.
 | Models | Five configured Phase 3 Model B joblib models; baseline frozen as phase3-model-b-v1 | Distribute versioned bundle and complete native deployment recipe |
 | Predictions | Five pressures, non-scrolling table/chart/CSV download for geometry + CIF | Preserve these outputs |
 | SHAP | Waterfall for the geometry + CIF row at a selected pressure | Explain the same Phase 3 model and feature row used for prediction |
-| Scientific summary | Local rule-based summary from predictions and matching SHAP; no external calls | Add an optional LLM after scientific review and provider/data-policy agreement |
+| Scientific summary | Opt-in Gemini draft in React; disabled by default; validated rule-based facts retained internally | Configure approved provider access and review generated summaries |
 | Deployment | Local prototype; Dockerfile is only a base image | Tested, reproducible deployment with separately supplied model artifacts |
 
 The current [app](../src/app.py) is a **local Phase 3 demo**. It requires

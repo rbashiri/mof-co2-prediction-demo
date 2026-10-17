@@ -17,6 +17,8 @@ interface PredictResponse {
   features: Record<string, number>
   shap: Record<string, ShapData>
   summary: Record<string, string>
+  gemini_summary: string | null
+  gemini_error: string | null
   predictions_csv: string
 }
 
@@ -44,6 +46,7 @@ export default function App() {
   const [showAbout, setShowAbout] = useState(false)
   const [showFeatures, setShowFeatures] = useState(false)
   const [selectedPressure, setSelectedPressure] = useState<string>('0.1')
+  const [includeGemini, setIncludeGemini] = useState(false)
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
@@ -65,6 +68,7 @@ export default function App() {
     const form = new FormData()
     GEOMETRY_FIELDS.forEach(({ name }) => form.append(name, geometry[name]))
     form.append('cif', file)
+    form.append('include_gemini', String(includeGemini))
 
     try {
       const res = await fetch('/api/predict', { method: 'POST', body: form })
@@ -146,6 +150,18 @@ export default function App() {
             {file && <div className="file-name">{file.name}</div>}
           </label>
 
+          <p>
+            <label>
+              <input type="checkbox" checked={includeGemini}
+                onChange={(e) => setIncludeGemini(e.target.checked)} />
+              {' '}Include a Gemini Flash draft summary
+            </label>
+          </p>
+          <p className="about-body">
+            Optional: sends predicted uptake and validated endpoint SHAP summary sections
+            to Google, not the CIF file. Requires server configuration. Leave unchecked
+            to keep processing local.
+          </p>
           <div className="actions">
             <button type="submit" className="btn" disabled={!file || loading}>
               {loading ? 'Extracting & predicting…' : 'Extract descriptors and predict'}
@@ -168,6 +184,7 @@ export default function App() {
                 </div>
               ))}
             </div>
+            <UptakeTable data={result.pressures} />
             <PressureCurve data={result.pressures} />
             <div className="actions">
               <button className="btn btn-secondary" onClick={downloadCsv}>
@@ -200,17 +217,41 @@ export default function App() {
 
           <div className="card">
             <h3>Scientific summary</h3>
-            <div className="summary-section">
-              {Object.entries(result.summary).map(([title, text]) => (
-                <div key={title}>
-                  <h4>{title}</h4>
-                  <p>{text}</p>
-                </div>
-              ))}
-            </div>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '1rem' }}>
-              Rule-based summary — not AI-generated. Draft for scientific review.
-            </p>
+            {result.gemini_summary && (
+              <div className="summary-section">
+                <h4>Gemini Flash explanation</h4>
+                <p>{result.gemini_summary}</p>
+                <p>AI-generated draft — scientific review required.</p>
+                <aside aria-label="How to read this explanation">
+                  <h4>How to read this explanation</h4>
+                  <p>
+                    The feature explanations describe how the model arrived at this
+                    structure&apos;s prediction, not proof that changing a feature will
+                    change CO₂ uptake. Each pressure uses a separate model with its
+                    own reference prediction, so larger contributions across pressures
+                    do not by themselves mean greater importance.
+                  </p>
+                  <p>
+                    Predictions are based on computer-simulated MOF data, not laboratory
+                    measurements. They have no established experimental validation or
+                    material-specific uncertainty range. Scientific review is required.
+                  </p>
+                </aside>
+              </div>
+            )}
+            {result.gemini_error && (
+              <div className="error" role="alert">
+                Gemini summary unavailable: {result.gemini_error}
+                {' '}Predictions and SHAP are unchanged.
+              </div>
+            )}
+            {!result.gemini_summary && !result.gemini_error && (
+              <p className="about-body">
+                No AI summary requested. To generate one, select “Include a Gemini Flash
+                draft summary” and submit the prediction again. Gemini must be configured
+                on the server.
+              </p>
+            )}
           </div>
 
           <div className="card">
@@ -225,20 +266,45 @@ export default function App() {
   )
 }
 
+function UptakeTable({ data }: { data: PressurePoint[] }) {
+  const lowest = Math.min(...data.map((point) => point.uptake))
+  const highest = Math.max(...data.map((point) => point.uptake))
+  return (
+    <table className="feature-table uptake-table">
+      <caption>Five-pressure comparison for this structure</caption>
+      <thead>
+        <tr><th scope="col">Pressure (bar)</th><th scope="col">Predicted CO₂ uptake (mol/kg)</th><th scope="col">Comparison</th></tr>
+      </thead>
+      <tbody>
+        {[...data].sort((a, b) => a.pressure - b.pressure).map((point) => (
+          <tr key={point.pressure} className={point.uptake === highest ? 'uptake-highest' : point.uptake === lowest ? 'uptake-lowest' : ''}>
+            <th scope="row">{point.pressure}</th>
+            <td>{Number(point.uptake.toPrecision(6)).toString()}</td>
+            <td>
+              {point.uptake === highest && point.uptake === lowest ? 'Highest / lowest (equal)' :
+                point.uptake === highest ? 'Highest' : point.uptake === lowest ? 'Lowest' : '—'}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
+}
+
 function PressureCurve({ data }: { data: PressurePoint[] }) {
   const width = 700
   const height = 260
-  const padding = { top: 20, right: 30, bottom: 40, left: 50 }
+  const padding = { top: 20, right: 35, bottom: 55, left: 75 }
   const chartWidth = width - padding.left - padding.right
   const chartHeight = height - padding.top - padding.bottom
 
-  const xMin = data[0].pressure
-  const xMax = data[data.length - 1].pressure
-  const yMax = Math.max(...data.map((d) => d.uptake)) * 1.1
-  const yMin = 0
+  const xMin = Math.log10(Math.min(...data.map((d) => d.pressure)))
+  const xMax = Math.log10(Math.max(...data.map((d) => d.pressure)))
+  const yMax = Math.max(0, ...data.map((d) => d.uptake)) * 1.1 || 1
+  const yMin = Math.min(0, ...data.map((d) => d.uptake)) * 1.1
 
   const xScale = (p: number) =>
-    padding.left + ((p - xMin) / (xMax - xMin)) * chartWidth
+    padding.left + ((Math.log10(p) - xMin) / (xMax - xMin)) * chartWidth
   const yScale = (v: number) =>
     padding.top + chartHeight - ((v - yMin) / (yMax - yMin)) * chartHeight
 
@@ -249,6 +315,7 @@ function PressureCurve({ data }: { data: PressurePoint[] }) {
   const yTicks = Array.from({ length: 5 }, (_, i) => yMin + (i * (yMax - yMin)) / 4)
 
   return (
+    <div className="chart-scroll" role="region" aria-label="Pressure uptake chart" tabIndex={0}>
     <svg className="pressure-curve" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet">
       <line
         x1={padding.left}
@@ -295,7 +362,7 @@ function PressureCurve({ data }: { data: PressurePoint[] }) {
       ))}
       <path d={path} fill="none" stroke="var(--accent)" strokeWidth="2.5" />
       <text x={padding.left} y={height - 5} fill="var(--text-muted)" fontSize="12">
-        Pressure (bar)
+        Pressure (bar, logarithmic scale)
       </text>
       <text
         x={15}
@@ -308,6 +375,7 @@ function PressureCurve({ data }: { data: PressurePoint[] }) {
         CO₂ uptake (mol/kg)
       </text>
     </svg>
+    </div>
   )
 }
 
@@ -326,25 +394,31 @@ function ShapChart({ data }: { data: ShapData | undefined }) {
   if (!data) return null
 
   const maxAbs = Math.max(...rows.map((r) => Math.abs(r.contribution)), 1e-9)
-  const width = 600
-  const height = rows.length * 32 + 40
-  const barMax = 240
-  const leftMargin = 220
+  const width = 900
+  const height = rows.length * 32 + 65
+  const barMax = 170
+  const labelEnd = 420
+  const zeroX = 610
 
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet" style={{ width: '100%', height: 'auto' }}>
+    <div className="chart-scroll" role="region" aria-label="Selected pressure SHAP chart" tabIndex={0}>
+    <svg className="shap-chart" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet">
       <text x={20} y={20} fill="var(--text-muted)" fontSize="12">
         Baseline: {data.baseline.toFixed(4)} mol/kg
       </text>
+      <text x={labelEnd} y={45} fill="var(--text-muted)" fontSize="12" textAnchor="end">Feature</text>
+      <text x={zeroX} y={45} fill="var(--text-muted)" fontSize="12" textAnchor="middle">Contribution (mol/kg)</text>
+      <text x={width - 10} y={45} fill="var(--text-muted)" fontSize="12" textAnchor="end">Value</text>
+      <line x1={zeroX} x2={zeroX} y1={52} y2={height - 5} stroke="var(--text-muted)" />
       {rows.map((row, i) => {
-        const y = 35 + i * 32
+        const y = 55 + i * 32
         const barWidth = (row.contribution / maxAbs) * barMax
-        const barX = row.contribution >= 0 ? leftMargin : leftMargin + barWidth
+        const barX = row.contribution >= 0 ? zeroX : zeroX + barWidth
         const absWidth = Math.abs(barWidth)
         return (
           <g key={row.name}>
-            <text x={leftMargin - 10} y={y + 16} fill="var(--text)" fontSize="12" textAnchor="end">
-              {row.name.length > 32 ? row.name.slice(0, 29) + '…' : row.name}
+            <text x={labelEnd} y={y + 16} fill="var(--text)" fontSize="12" textAnchor="end">
+              {row.name}
             </text>
             <rect
               x={barX}
@@ -355,11 +429,11 @@ function ShapChart({ data }: { data: ShapData | undefined }) {
               rx="4"
             />
             <text
-              x={row.contribution >= 0 ? barX + absWidth + 6 : barX - 6}
+              x={width - 10}
               y={y + 18}
               fill="var(--text-muted)"
               fontSize="11"
-              textAnchor={row.contribution >= 0 ? 'start' : 'end'}
+              textAnchor="end"
             >
               {row.contribution > 0 ? '+' : ''}
               {row.contribution.toExponential(2)}
@@ -368,6 +442,7 @@ function ShapChart({ data }: { data: ShapData | undefined }) {
         )
       })}
     </svg>
+    </div>
   )
 }
 
