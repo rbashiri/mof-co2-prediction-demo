@@ -5,6 +5,10 @@ data/
 *.csv
 *.parquet
 
+# Frontend lockfile and dependencies
+!frontend/package-lock.json
+frontend/node_modules/
+
 # Small sample inputs included for the demo
 !notebook/sample/mof_co2_geometry_10.csv
 !notebook/sample/cif_files/*.cif
