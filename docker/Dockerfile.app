@@ -5,7 +5,10 @@ FROM node:20-bookworm-slim AS frontend-builder
 
 WORKDIR /frontend
 COPY frontend/package*.json /frontend/
-RUN npm install
+RUN npm config set fetch-retries 5 && \
+    npm config set fetch-retry-mintimeout 20000 && \
+    npm config set fetch-retry-maxtimeout 120000 && \
+    npm ci --no-audit --no-fund
 
 COPY frontend/ /frontend/
 RUN npm run build
