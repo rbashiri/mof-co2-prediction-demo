@@ -11,6 +11,7 @@ COPY configs/config.yaml /app/configs/config.yaml
 COPY results/models/ /app/results/models/
 COPY mof_models.py /app/mof_models.py
 
+ENV STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
 EXPOSE 8501
 
-CMD ["python", "-m", "streamlit", "run", "src/app.py", "--server.address=0.0.0.0", "--server.port=8501", "--server.headless=true"]
+CMD ["sh", "-c", "python -m streamlit run src/app.py --server.address=0.0.0.0 --server.port=${PORT:-8501} --server.headless=true"]
