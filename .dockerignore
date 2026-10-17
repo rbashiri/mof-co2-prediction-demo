@@ -14,8 +14,10 @@
 !docker/
 !docker/Dockerfile.app
 !frontend/
-!frontend/package*.json
-!frontend/tsconfig*.json
+!frontend/package.json
+!frontend/package-lock.json
+!frontend/tsconfig.json
+!frontend/tsconfig.node.json
 !frontend/vite.config.ts
 !frontend/index.html
 !frontend/src/
