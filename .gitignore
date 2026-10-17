@@ -5,7 +5,8 @@ data/
 *.csv
 *.parquet
 
-# Frontend lockfile and dependencies
+# Frontend manifest and lockfile
+!frontend/package.json
 !frontend/package-lock.json
 frontend/node_modules/
 
