@@ -5,9 +5,11 @@ data/
 *.csv
 *.parquet
 
-# Frontend manifest and lockfile
+# Frontend manifest, lockfile, and TypeScript configs
 !frontend/package.json
 !frontend/package-lock.json
+!frontend/tsconfig.json
+!frontend/tsconfig.node.json
 frontend/node_modules/
 
 # Small sample inputs included for the demo
