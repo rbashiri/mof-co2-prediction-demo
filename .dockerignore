@@ -13,7 +13,16 @@
 !results/models/*.joblib
 !docker/
 !docker/Dockerfile.app
+!frontend/
+!frontend/package*.json
+!frontend/tsconfig*.json
+!frontend/vite.config.ts
+!frontend/index.html
+!frontend/src/
+!frontend/src/**
 
-# Exclude generated Python files even within included folders.
+# Exclude generated files even within included folders.
 **/__pycache__/
 **/*.pyc
+frontend/node_modules/
+frontend/dist/

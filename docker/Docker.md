@@ -4,8 +4,9 @@ This setup builds two images and runs one application container:
 
 - [Dockerfile.mofid](Dockerfile.mofid) builds `mofid-base:demo`, containing
   Python 3.12.3, native MOFid, and its bundled Open Babel libraries/resources.
-- [Dockerfile.app](Dockerfile.app) builds `mof-co2-app:demo` on that base,
-  adding the application dependencies, configuration, code, and models.
+- [Dockerfile.app](Dockerfile.app) builds the runnable web app on that base.
+  It bundles a FastAPI backend, a React + Vite frontend, the five Phase 3
+  Model B joblib models, and the application configuration.
 
 MOFid source is pinned to revision
 `36873683083c7bc62c1da2062df2833adc35b48a`. Package repository contents and
@@ -74,8 +75,9 @@ docker run --rm -p 127.0.0.1:8501:8501 mof-co2-app:demo
 # docker run --rm -p 127.0.0.1:8501:8501 ripunjaykumar0902/mof-co2:demo
 ```
 
-The app listens on `PORT` when that environment variable is set (Render and
-similar hosts), and on 8501 otherwise. Map the host port to the same value.
+The FastAPI server listens on `PORT` when that environment variable is set
+(Render and similar hosts), and on 8501 otherwise. Map the host port to the
+same value.
 
 Open <http://localhost:8501>. For a remote VS Code workspace, forward port
 8501. Stop the foreground container with Ctrl+C; the images remain available.
@@ -83,6 +85,21 @@ Open <http://localhost:8501>. For a remote VS Code workspace, forward port
 Supply one CIF and its matching largest cavity diameter (angstrom), pore
 limiting diameter (angstrom), void fraction (0-1), and surface area (m2/g).
 The application does not calculate these four geometry values.
+
+## Local development
+
+```bash
+# Terminal 1: API
+uvicorn src.api:app --reload --port 8000
+
+# Terminal 2: React dev server
+cd frontend
+npm install
+npm run dev
+```
+
+Vite proxies `/api` to `http://localhost:8000`. For production, the container
+serves the built `frontend/dist` files from FastAPI's root mount.
 
 ## Validation and remaining deployment work
 
