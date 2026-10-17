@@ -5,7 +5,7 @@ import shap
 
 from src.app import load_app_settings, load_models, predict_all
 from src.paths import MODELS_DIR, PHASE3_DATA_PATH
-from src.scientific_summary import PRESSURES, generate_summary
+from src.scientific_summary import PRESSURES, generate_pressure_comparison, generate_summary
 
 
 def example():
@@ -122,4 +122,91 @@ def test_real_reference_rows_at_every_pressure(name):
         assert f"At {pressure:g} bar" in summary
         for p, uptake in zip(PRESSURES, predictions.iloc[:, 1]):
             assert f"{p:g} bar: {uptake:.6g}" in summary
+    sections = generate_pressure_comparison(
+        predictions, features,
+        shap.TreeExplainer(models[PRESSURES[0]])(features)[0],
+        shap.TreeExplainer(models[PRESSURES[-1]])(features)[0],
+    )
+    assert len(sections) == 4
+    difference = float(predictions.iloc[-1, 1] - predictions.iloc[0, 1])
+    assert f"{difference:+.6g} mol/kg" in sections["Pressure comparison"]
+    pd.testing.assert_frame_equal(predictions, original)
+
+
+def endpoint_example():
+    predictions, features, _ = example()
+    explanations = []
+    for index, values in (
+        (0, [0.01, -0.005] + [0.0] * 46),
+        (-1, [-0.2, 0.6] + [0.0] * 46),
+    ):
+        values = np.array(values)
+        explanations.append(shap.Explanation(
+            values=values,
+            base_values=float(predictions.iloc[index, 1]) - float(values.sum()),
+            data=features.iloc[0].to_numpy(), feature_names=features.columns.tolist(),
+        ))
+    return predictions, features, *explanations
+
+
+def test_endpoint_comparison_sections_values_and_independent_baselines():
+    predictions, features, low, high = endpoint_example()
+    original = predictions.copy(deep=True)
+    sections = generate_pressure_comparison(predictions, features, low, high)
+    assert list(sections) == [
+        "Pressure comparison", "Low-pressure SHAP (0.01 bar)",
+        "Higher-pressure SHAP (2.5 bar)", "Limitations",
+    ]
+    assert "+4.31 mol/kg" in sections["Pressure comparison"]
+    for pressure, uptake in zip(PRESSURES, predictions.iloc[:, 1]):
+        assert f"{pressure:g} bar: {uptake:.6g}" in sections["Pressure comparison"]
+    assert "baseline is 0.015 mol/kg" in sections["Low-pressure SHAP (0.01 bar)"]
+    assert "feature_0 (+0.01 mol/kg)" in sections["Low-pressure SHAP (0.01 bar)"]
+    assert "feature_1 (-0.005 mol/kg)" in sections["Low-pressure SHAP (0.01 bar)"]
+    assert "baseline is 3.93 mol/kg" in sections["Higher-pressure SHAP (2.5 bar)"]
+    assert "feature_1 (+0.6 mol/kg)" in sections["Higher-pressure SHAP (2.5 bar)"]
+    assert "feature_0 (-0.2 mol/kg)" in sections["Higher-pressure SHAP (2.5 bar)"]
+    assert "not global feature rankings" in sections["Limitations"]
+    assert "do not alone establish greater relative importance" in sections["Limitations"]
+    pd.testing.assert_frame_equal(predictions, original)
+
+
+@pytest.mark.parametrize("endpoint", ["low", "high"])
+@pytest.mark.parametrize("case", ["baseline", "row", "order", "missing", "nan"])
+def test_each_endpoint_must_match_its_prediction_and_row(endpoint, case):
+    predictions, features, low, high = endpoint_example()
+    explanation = low if endpoint == "low" else high
+    if case == "baseline":
+        explanation.base_values += 0.1
+    elif case == "row":
+        explanation.data = explanation.data + 1
+    elif case == "order":
+        explanation.feature_names = explanation.feature_names[::-1]
+    elif case == "missing":
+        explanation.values = explanation.values[:-1]
+    elif case == "nan":
+        explanation.values[0] = np.nan
+    with pytest.raises(ValueError):
+        generate_pressure_comparison(predictions, features, low, high)
+
+
+def test_swapped_endpoint_explanations_rejected():
+    predictions, features, low, high = endpoint_example()
+    with pytest.raises(ValueError, match="additivity"):
+        generate_pressure_comparison(predictions, features, high, low)
+
+
+@pytest.mark.parametrize("low_uptake,high_uptake", [(0.0, 0.0), (1.0, -0.1)])
+def test_zero_and_decreasing_endpoints_do_not_require_ratios(low_uptake, high_uptake):
+    predictions, features, low, high = endpoint_example()
+    predictions.iloc[0, 1] = low_uptake
+    predictions.iloc[-1, 1] = high_uptake
+    low.base_values = low_uptake - low.values.sum()
+    high.base_values = high_uptake - high.values.sum()
+    original = predictions.copy(deep=True)
+    sections = generate_pressure_comparison(predictions, features, low, high)
+    assert f"{high_uptake - low_uptake:+.6g} mol/kg" in sections["Pressure comparison"]
+    assert "Non-monotonic predictions require review" in sections["Pressure comparison"]
+    if high_uptake < 0:
+        assert "Negative predicted uptake requires review" in sections["Pressure comparison"]
     pd.testing.assert_frame_equal(predictions, original)

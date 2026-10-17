@@ -21,7 +21,7 @@ if not __package__:
 
 from src.paths import CONFIG_PATH, MODELS_DIR, PROJECT_ROOT
 from src.phase3_features import build_phase3_features
-from src.scientific_summary import PRESSURES, SUMMARY_LABEL, generate_summary
+from src.scientific_summary import PRESSURES, SUMMARY_LABEL, generate_pressure_comparison
 from src.train import GEOMETRY_COLUMNS
 
 LOGGER = logging.getLogger(__name__)
@@ -210,6 +210,7 @@ def main() -> None:
         st.session_state.pop("phase3_summary", None)
     st.subheader("Scientific summary")
     st.caption(f"{SUMMARY_LABEL}. Runs locally; no API key or external data sharing.")
+    st.caption("Compares 0.01 and 2.5 bar, independently of the waterfall pressure above.")
     if st.button(
         "Generate scientific summary", key="generate_scientific_summary",
         disabled=explanation is None,
@@ -218,14 +219,26 @@ def main() -> None:
         try:
             if explanation is None:
                 raise ValueError("A matching SHAP explanation is required.")
-            with st.spinner("Summarizing predictions and SHAP..."):
-                summary = generate_summary(predictions, features, explanation, pressure)
+            with st.spinner("Comparing predictions and endpoint SHAP explanations..."):
+                low_explanation = (
+                    explanation if pressure == PRESSURES[0]
+                    else shap.TreeExplainer(models[PRESSURES[0]])(features)[0]
+                )
+                high_explanation = (
+                    explanation if pressure == PRESSURES[-1]
+                    else shap.TreeExplainer(models[PRESSURES[-1]])(features)[0]
+                )
+                summary = generate_pressure_comparison(
+                    predictions, features, low_explanation, high_explanation,
+                )
             st.session_state["phase3_summary"] = (context, summary)
         except (ValueError, TypeError, RuntimeError) as error:
             report_error("Summary generation failed", error)
     saved_summary = st.session_state.get("phase3_summary")
     if saved_summary is not None:
-        st.text(saved_summary[1])
+        for title, text in saved_summary[1].items():
+            st.markdown(f"**{title}**")
+            st.text(text)
         st.caption("Draft for scientific review, not an approved scientific interpretation.")
 
 

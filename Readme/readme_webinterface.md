@@ -201,14 +201,33 @@ verified adsorption mechanisms.
 
 ### Stage 1: local summary (implemented)
 
-After generating predictions, choose a SHAP pressure and click **Generate
-scientific summary**. The app displays an 80-150-word paragraph labelled
-**Rule-based summary - not AI-generated**. No API key, new dependencies,
+After generating predictions, click **Generate scientific summary**. The app
+displays four short sections labelled **Rule-based summary - not AI-generated**:
+
+- **Pressure comparison:** all five predictions and the signed endpoint
+  difference (2.5 bar minus 0.01 bar), in mol/kg.
+- **Low-pressure SHAP (0.01 bar):** baseline and strongest positive/negative
+  contributions for this MOF.
+- **Higher-pressure SHAP (2.5 bar):** the same information from the separate
+  2.5-bar model.
+- **Limitations:** local versus global interpretation, different model
+  baselines/scales, simulated data, and non-causality.
+
+The comparison always uses the lowest and highest trained pressures; these
+are not universal definitions of low/high pressure. The existing pressure
+selector still controls the waterfall independently. The multi-section
+comparison replaces the previous single 80-150-word paragraph in the app.
+No API key, new dependencies,
 network request, retraining, or separate backend is needed.
 
 [scientific_summary.py](../src/scientific_summary.py) checks the five pressure
 predictions, the matching feature row, all 48 signed contributions, and SHAP
-additivity before describing the strongest positive and negative contributions.
+additivity independently at each endpoint before describing the strongest
+positive and negative contributions. Endpoint SHAP explanations are calculated
+only on the summary-button click, reusing the displayed explanation if it is
+already at an endpoint. Larger absolute contributions at 2.5 bar do not alone
+establish greater relative importance because the models have different
+baselines and uptake scales. No uptake ratios or causal mechanisms are inferred.
 Numbers are displayed with six significant digits; the prediction table and
 download retain their existing behavior. Negative or non-monotonic predictions
 are flagged, not clipped or smoothed.
@@ -217,7 +236,9 @@ Generation requires an explicit click. Changing the CIF, geometry, configured
 model context, or SHAP pressure clears the summary; generate it again for the
 new context. A generation error is shown explicitly and the button can be
 clicked to retry. Predictions and SHAP remain independent of summary failures.
-If SHAP fails, summary generation is disabled.
+If the displayed SHAP explanation fails, summary generation is disabled. If an
+endpoint explanation fails during generation, an explicit summary error is shown;
+the selected-pressure waterfall and predictions remain available.
 
 To review the wording:
 
@@ -226,11 +247,12 @@ To review the wording:
    Enter its four geometry values from the matching row of the
    [sample table](../notebook/sample/mof_co2_geometry_10.csv).
    The table's uptake columns are reference data, not new app predictions.
-3. Click **Extract descriptors and predict**, choose a SHAP pressure, then
-   **Generate scientific summary**.
-4. Compare all five uptake numbers against the app table, and compare the
-   named contributions, signs, and baseline against SHAP. Check the simulated
-   data and non-causality limitations.
+3. Click **Extract descriptors and predict**, then **Generate scientific summary**.
+4. Compare all five uptake numbers against the app table and verify the signed
+   endpoint difference. Select 0.01 bar in the waterfall and generate the summary
+   again to compare the low-pressure contributions, signs, and baseline. Repeat
+   with 2.5 bar for the higher-pressure section. Check the simulated-data,
+   separate-baseline, local-importance, and non-causality limitations.
 5. Repeat for `hMOF-10` and `hMOF-100`, using each structure's own geometry.
    Change pressure and geometry to confirm the old summary disappears.
 
@@ -241,7 +263,8 @@ MPLBACKEND=Agg python -m pytest tests/test_scientific_summary.py tests/test_inte
 ```
 
 The three reference-row tests use real frozen models at all five pressures
-when the prepared Phase 3 dataset is available. They validate numerical
+and validate the endpoint comparison when the prepared Phase 3 dataset is
+available. They validate numerical
 consistency, not new CIF extraction or scientific approval. Native MOFid is
 still required for uploads.
 

@@ -7,11 +7,12 @@ import pandas as pd
 import joblib
 import numpy as np
 import pytest
+import shap
 from streamlit.testing.v1 import AppTest
 
 from src.app import features_from_upload
 from src.paths import PHASE3_DATA_PATH, MODELS_DIR
-from src.scientific_summary import generate_summary
+from src.scientific_summary import generate_pressure_comparison
 from src.train import GEOMETRY_COLUMNS
 
 APP = str(Path(__file__).resolve().parents[1] / "src" / "app.py")
@@ -94,8 +95,8 @@ def test_summary_click_generation_invalidation_failure_and_retry(tmp_path):
         patch("streamlit.file_uploader", side_effect=lambda *a, **k: io.BytesIO(upload[0])),
         patch("src.phase3_features.build_phase3_features", side_effect=build),
         patch(
-            "src.scientific_summary.generate_summary",
-            wraps=generate_summary,
+            "src.scientific_summary.generate_pressure_comparison",
+            wraps=generate_pressure_comparison,
         ) as generate,
     ):
         app = AppTest.from_file(APP).run(timeout=60)
@@ -106,7 +107,16 @@ def test_summary_click_generation_invalidation_failure_and_retry(tmp_path):
         assert not app.exception
         assert not app.error
         assert generate.call_count == 1
-        assert 80 <= len(app.text[0].value.split()) <= 150
+        assert len(app.text) == 4
+        assert "endpoint difference" in app.text[0].value
+        assert "At 0.01 bar" in app.text[1].value
+        assert "At 2.5 bar" in app.text[2].value
+        assert "own baseline and uptake scale" in app.text[3].value
+        predictions = app.table[0].value.iloc[:, 1]
+        difference = predictions.iloc[-1] - predictions.iloc[0]
+        assert f"{difference:+.6g} mol/kg" in app.text[0].value
+        low, high = generate.call_args.args[2:]
+        assert not np.array_equal(low.values, high.values)
         assert any("not AI-generated" in caption.value for caption in app.caption)
         app.selectbox[0].set_value(0.5).run(timeout=60)
         assert not app.text
@@ -119,6 +129,22 @@ def test_summary_click_generation_invalidation_failure_and_retry(tmp_path):
         assert len(app.get("image")) == 1
         assert not app.text
         generate.side_effect = None
+        tree_explainer = shap.TreeExplainer
+        calls = []
+
+        def fail_endpoint(*args, **kwargs):
+            calls.append(args[0])
+            if len(calls) == 2:
+                raise ValueError("Endpoint failed")
+            return tree_explainer(*args, **kwargs)
+
+        with patch("shap.TreeExplainer", side_effect=fail_endpoint):
+            app.button(key="generate_scientific_summary").click().run(timeout=60)
+            assert not app.exception
+            assert any("Endpoint failed" in error.value for error in app.error)
+            assert len(app.table) == 1
+            assert len(app.get("image")) == 1
+            assert not app.text
         app.button(key="generate_scientific_summary").click().run(timeout=60)
         assert not app.error
         assert app.text
