@@ -67,6 +67,33 @@ def test_mock_request_and_validation(configured, monkeypatch):
     assert len(calls) == 1
 
 
+@pytest.mark.parametrize("status", [400, 403, 404, 429, 500, 503])
+def test_http_errors_are_not_retried(configured, monkeypatch, status):
+    calls = []
+
+    def fail(request, timeout):
+        calls.append(request)
+        raise HTTPError("https://example.invalid", status, "Rejected", {}, io.BytesIO(b"{}"))
+
+    monkeypatch.setattr("src.gemini_summary.urlopen", fail)
+    with pytest.raises(GeminiSummaryError):
+        generate_gemini_summary(UPTAKES, SECTIONS)
+    assert len(calls) == 1
+
+
+def test_invalid_draft_is_not_retried(configured, monkeypatch):
+    calls = []
+
+    def fake_open(request, timeout):
+        calls.append(request)
+        return io.BytesIO(json.dumps(payload("too short")).encode())
+
+    monkeypatch.setattr("src.gemini_summary.urlopen", fake_open)
+    with pytest.raises(GeminiSummaryError, match="word requirement"):
+        generate_gemini_summary(UPTAKES, SECTIONS)
+    assert len(calls) == 1
+
+
 def test_disabled_never_calls_network(monkeypatch):
     monkeypatch.delenv("GEMINI_ENABLED", raising=False)
     monkeypatch.setattr("src.gemini_summary.urlopen", lambda *a, **k: pytest.fail("Network call"))

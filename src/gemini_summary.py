@@ -182,7 +182,11 @@ def generate_gemini_summary(uptakes: list[float], sections: dict[str, str]) -> s
         with urlopen(request, timeout=25) as response:
             payload = json.load(response)
     except HTTPError as exc:
-        raise GeminiSummaryError(describe_http_error(exc)) from None
+        try:
+            message = describe_http_error(exc)
+        finally:
+            exc.close()
+        raise GeminiSummaryError(message) from None
     except (URLError, TimeoutError, OSError):
         raise GeminiSummaryError("Gemini is unavailable. Please try again later.") from None
     except (ValueError, UnicodeError):

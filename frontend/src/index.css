@@ -157,6 +157,49 @@ header p {
   margin-bottom: 1.5rem;
 }
 
+.prediction-progress {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.prediction-progress p {
+  margin: 0.35rem 0 0;
+  color: var(--text-muted);
+}
+
+.prediction-progress .elapsed-time {
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+
+.molecule-loader {
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+  color: var(--accent);
+  fill: var(--accent);
+}
+
+.molecule-orbit {
+  transform-origin: 40px 40px;
+  animation: molecule-turn 8s linear infinite;
+}
+
+.molecule-center {
+  fill: var(--accent-2);
+}
+
+@keyframes molecule-turn {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .molecule-orbit {
+    animation: none;
+  }
+}
+
 .metric-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
