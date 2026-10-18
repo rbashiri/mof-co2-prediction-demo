@@ -173,7 +173,13 @@ def generate_gemini_summary(uptakes: list[float], sections: dict[str, str]) -> s
         f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
         data=json.dumps({
             "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-            "generationConfig": {"temperature": 0.1, "maxOutputTokens": 2048},
+            "generationConfig": {
+                "temperature": 0.1,
+                "maxOutputTokens": 4096,
+                # Thinking models (e.g. gemini-3.8-flash) can spend the output
+                # budget on internal reasoning and return MAX_TOKENS with no draft.
+                "thinkingConfig": {"thinkingBudget": 0},
+            },
         }).encode("utf-8"),
         headers={"x-goog-api-key": api_key, "Content-Type": "application/json"},
         method="POST",

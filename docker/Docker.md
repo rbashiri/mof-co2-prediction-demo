@@ -101,6 +101,49 @@ npm run dev
 Vite proxies `/api` to `http://localhost:8000`. For production, the container
 serves the built `frontend/dist` files from FastAPI's root mount.
 
+## Deploy on Render
+
+No application code changes are required for secrets or Gemini. The container
+reads normal process environment variables; local `.env` is for Podman/Docker
+only and is not committed or baked into the image.
+
+### CI and image tag
+
+Every `git push` runs [`.github/workflows/docker-publish.yml`](../.github/workflows/docker-publish.yml).
+It builds both images and **pushes to Docker Hub** (`ripunjaykumar0902/mof-co2`), not
+to GitHub. Tags include the branch name (for example `feat-llm-summary`) and
+`sha-<commit>`. On the default branch you also get `demo` and `latest`.
+
+After a successful workflow, point Render at the tag you want:
+
+`docker.io/ripunjaykumar0902/mof-co2:<branch-or-sha-tag>`
+
+### Render web service setup
+
+1. Create a **Web Service** → **Deploy an existing image from a registry**.
+2. Image URL: `ripunjaykumar0902/mof-co2:<tag>` (use the branch tag from CI).
+3. **Do not** set a custom `PORT` unless you know you need to — Render injects
+   `PORT` automatically; the image CMD already uses `${PORT:-8501}`.
+4. Health check path (optional): `/api/health`.
+
+### Environment variables on Render
+
+In the service → **Environment** → add variables (same names as local `.env`).
+Redeploy after changing them.
+
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `GEMINI_ENABLED` | Only for Gemini summaries | Set to `true` to allow opt-in Gemini drafts |
+| `GEMINI_API_KEY` | If Gemini enabled | Server-side API key (Secret in Render) |
+| `GEMINI_MODEL` | If Gemini enabled | e.g. `gemini-3.8-flash` (must work with your key) |
+
+Predictions and SHAP work **without** any of the Gemini variables. If Gemini
+is off or misconfigured, users still get predictions; the UI shows a Gemini
+error only when they check “Include a Gemini Flash draft summary”.
+
+Do **not** put API keys in the repo, Dockerfile, or frontend. Render
+**Secret** files are unnecessary unless you prefer them over key/value env vars.
+
 ## Validation and remaining deployment work
 
 Both images built successfully locally. The native IRMOF-1 smoke test

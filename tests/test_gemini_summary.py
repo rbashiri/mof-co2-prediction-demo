@@ -59,6 +59,7 @@ def test_mock_request_and_validation(configured, monkeypatch):
         assert request.get_header("X-goog-api-key") == "test-only-key"
         body = json.loads(request.data)
         assert body["generationConfig"]["temperature"] == 0.1
+        assert body["generationConfig"]["thinkingConfig"] == {"thinkingBudget": 0}
         assert "scientific_sections" in body["contents"][0]["parts"][0]["text"]
         return io.BytesIO(json.dumps(payload()).encode())
 
