@@ -9,6 +9,13 @@ data/
 !notebook/sample/mof_co2_geometry_10.csv
 !notebook/sample/cif_files/*.cif
 
+# Local reference material; existing tracked guides remain versioned.
+/Readme/
+
+# Frontend dependencies and generated TypeScript files.
+node_modules/
+*.tsbuildinfo
+
 # local Python environment, different on every machine, often large
 .venv/
 __pycache__/
