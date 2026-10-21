@@ -12,6 +12,26 @@ The project documentation is organized into two guides:
 The app uses Phase 3 Model B with supplied geometry and CIF-derived
 descriptors. See the web guide for local MOFid setup and usage.
 
+## Hackathon: reproducible Zeo++ installation
+
+On Linux with Python 3.12+, GNU Make and `g++` available, run:
+
+```bash
+python3 scripts/install_zeopp.py
+```
+
+The script downloads the official Zeo++ 0.3 source, checks its pinned SHA-256,
+builds bundled Voro++ and Zeo++, and verifies that `network` runs. By default
+it installs outside the repository at `~/zeopp-tools/zeo++-0.3`. It never
+overwrites an existing directory; use `--destination /path/to/new/directory`
+for a separate installation. Build/download failures exit with an explicit error.
+The checksum pins the archive used in the hackathon setup, not an independently
+published upstream signature. The source includes Zeo++ licensing information.
+
+This installs the tool only; automatic geometry extraction is not yet wired
+into the app. Probe settings and agreement with training geometry still need
+validation before using its outputs for validated predictions.
+
 ## Sample files
 
 The [sample folder](notebook/sample/) includes a
