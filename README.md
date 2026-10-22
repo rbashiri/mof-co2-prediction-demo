@@ -166,9 +166,9 @@ five app-ready copies. Old experiment outputs are kept locally in the ignored
 separately through
 [data_mof_demo on OneDrive](https://1drv.ms/f/c/ab0bbacec1d386eb/IgDJcymaZGwpR7fG_rqk97GXAcGskJ7--PZfOQ6_GWqbcFA?e=orssqL).
 
-The [hackathon task and ownership plan](docs/hackathon_tasks_and_ownership.md)
-targets a prepared setup by October 17, 2026, including an LLM summary,
-scientific review, deployment, and presentation preparation.
+See the [hackathon task and ownership plan](docs/hackathon_tasks_and_ownership.md)
+for the remaining LLM summary, scientific review, deployment, and presentation
+preparation work.
 
 The [original README](docs/archive/README_original.md) is preserved unchanged
 for reference.
