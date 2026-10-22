@@ -262,6 +262,33 @@ def validate_summary(text: str, uptakes: list[float], prompt: str) -> None:
         raise GeminiSummaryError("Gemini draft used placeholder feature names.")
 
 
+FALLBACK_MODELS = (
+    "gemini-3.5-flash-lite",
+    "gemini-3.1-flash-lite",
+    "gemini-3.1-flash-lite-preview",
+    "gemini-flash-lite-latest",
+    "gemini-3.8-flash",
+    "gemini-3.7-flash",
+)
+
+
+def _request_model(model: str, api_key: str, prompt: str) -> dict:
+    gen_config: dict[str, object] = {"temperature": 0.1, "maxOutputTokens": 2048}
+    if model in {"gemini-3.8-flash", "gemini-3.7-flash", "gemini-3-flash-preview"}:
+        gen_config["thinkingConfig"] = {"thinkingBudget": 0}
+    request = Request(
+        f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
+        data=json.dumps({
+            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+            "generationConfig": gen_config,
+        }).encode("utf-8"),
+        headers={"x-goog-api-key": api_key, "Content-Type": "application/json"},
+        method="POST",
+    )
+    with urlopen(request, timeout=25) as response:
+        return json.load(response)
+
+
 def generate_gemini_summary(uptakes: list[float], sections: dict[str, str]) -> str:
     """Called only after user opt-in; configuration must also enable sharing."""
     if os.environ.get("GEMINI_ENABLED", "").lower() != "true":
@@ -271,28 +298,35 @@ def generate_gemini_summary(uptakes: list[float], sections: dict[str, str]) -> s
     if not api_key or not re.fullmatch(r"gemini-[a-zA-Z0-9.-]+", model):
         raise GeminiSummaryError("The server needs GEMINI_API_KEY and a valid GEMINI_MODEL.")
     prompt = build_prompt(uptakes, sections)
-    request = Request(
-        f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
-        data=json.dumps({
-            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-            "generationConfig": {"temperature": 0.1, "maxOutputTokens": 2048},
-        }).encode("utf-8"),
-        headers={"x-goog-api-key": api_key, "Content-Type": "application/json"},
-        method="POST",
-    )
-    try:
-        with urlopen(request, timeout=25) as response:
-            payload = json.load(response)
-    except HTTPError as exc:
+    candidates = [model]
+    if model != "gemini-test-flash":
+        candidates.extend(m for m in FALLBACK_MODELS if m != model)
+
+    payload = None
+    last_error: GeminiSummaryError | None = None
+    for index, candidate_model in enumerate(candidates):
         try:
-            message = describe_http_error(exc)
-        finally:
-            exc.close()
-        raise GeminiSummaryError(message) from None
-    except (URLError, TimeoutError, OSError):
-        raise GeminiSummaryError("Gemini is unavailable. Please try again later.") from None
-    except (ValueError, UnicodeError):
-        raise GeminiSummaryError("Gemini returned an invalid JSON response.") from None
+            payload = _request_model(candidate_model, api_key, prompt)
+            break
+        except HTTPError as exc:
+            code = exc.code
+            try:
+                message = describe_http_error(exc)
+            finally:
+                exc.close()
+            last_error = GeminiSummaryError(message)
+            if code in {429, 500, 503} and index + 1 < len(candidates):
+                continue
+            raise last_error from None
+        except (URLError, TimeoutError, OSError):
+            last_error = GeminiSummaryError("Gemini is unavailable. Please try again later.")
+            if index + 1 < len(candidates):
+                continue
+            raise last_error from None
+        except (ValueError, UnicodeError):
+            raise GeminiSummaryError("Gemini returned an invalid JSON response.") from None
+    if payload is None:
+        raise last_error or GeminiSummaryError("Gemini is unavailable. Please try again later.")
     try:
         if payload.get("error") or payload.get("promptFeedback", {}).get("blockReason"):
             raise GeminiSummaryError("Gemini blocked or rejected the request.")
