@@ -4,6 +4,29 @@
 
 ## Goal
 
+### Active React/FastAPI workflow
+
+This is a hackathon MVP focused on demonstrating the working application,
+with broader CIF support and scientific validation planned as future work.
+The [MVP test results and limitations](../README.md#hackathon-mvp-scope-tests-and-next-steps)
+include both successful uploads and the failed additional CIF; failures are
+not treated as completed predictions.
+
+Upload a CIF without entering geometry. The backend now runs Zeo++ for
+LCD, PLD, total probe-occupiable void fraction, and total surface area, then
+MOFid/RDKit and pymatgen for the remaining descriptors before prediction.
+The extracted geometry is displayed alongside the existing five-pressure
+predictions, SHAP and CSV download. See the root [README](../README.md) for
+installation, exact Zeo++ settings, API compatibility and focused tests.
+The geometry card shows a brief explanation of how the probe settings were
+chosen from ten sample MOFs. Detailed definitions and limitations remain in
+the README and API geometry metadata rather than a second paragraph in the card.
+The original training geometry calculation is unknown; automatic results
+are not claimed to reproduce it. Extraction failures stop the request.
+
+The sections below also describe the retained legacy Streamlit workflow,
+which still accepts manual geometry.
+
 Build a Streamlit demo around the selected **Phase 3 Model B** models:
 
 **Prepared MOF features -> validation -> XGBoost predictions -> SHAP

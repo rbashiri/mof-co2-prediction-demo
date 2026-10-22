@@ -18,6 +18,10 @@ FROM ${BASE_IMAGE}
 
 WORKDIR /app
 
+COPY scripts/install_zeopp.py /app/scripts/install_zeopp.py
+RUN python /app/scripts/install_zeopp.py --destination /opt/zeopp
+ENV ZEO_NETWORK_PATH=/opt/zeopp/network
+
 COPY requirements.txt /app/requirements.txt
 RUN python -m pip install --no-cache-dir -r /app/requirements.txt
 

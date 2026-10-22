@@ -6,6 +6,8 @@
 !mof_models.py
 !src/
 !src/**
+!scripts/
+!scripts/install_zeopp.py
 !configs/
 !configs/config.yaml
 !results/

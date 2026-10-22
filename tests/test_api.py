@@ -1,5 +1,7 @@
 import base64
 import io
+import math
+import os
 from pathlib import Path
 from unittest.mock import patch
 
@@ -196,3 +198,100 @@ def test_shap_additivity_for_zero_features(client, monkeypatch):
         uptake = next(p["uptake"] for p in data["pressures"] if p["pressure"] == pressure)
         total = shap_data["baseline"] + sum(shap_data["contributions"])
         assert abs(total - uptake) < 1e-4
+
+
+def test_cif_only_request_extracts_geometry_before_features(client, monkeypatch):
+    geometry = {"lcd": 11.76, "pld": 7.89, "void_fraction": 0.36, "surface_area_m2g": 3544.0}
+    paths = []
+
+    def extract(path, **kwargs):
+        paths.append(path)
+        assert path.read_bytes() == b"data_test\n"
+        return geometry
+
+    def build(path, supplied, *, feature_names, **kwargs):
+        assert path == paths[0]
+        assert supplied == geometry
+        return pd.DataFrame(
+            [[geometry.get(name, 0.0) for name in feature_names]], columns=feature_names,
+        )
+
+    monkeypatch.setattr("src.api.extract_geometry", extract)
+    monkeypatch.setattr("src.api.build_phase3_features", build)
+    response = client.post("/api/predict", files={"cif": cif_file(b"data_test\n")})
+    assert response.status_code == 200, response.text
+    result = response.json()
+    assert result["geometry"] == geometry
+    assert result["geometry_source"] == "zeopp"
+    assert result["geometry_settings"]["surface_probe_radius_angstrom"] == 1.65
+    assert result["geometry_settings"]["volume_probe_radius_angstrom"] == 1.2
+    assert result["geometry_settings"]["profile"] == "experimental-sample-comparison-v1"
+    assert result["geometry_warning"]
+    assert len(result["features"]) == 48
+    assert len(result["pressures"]) == 5
+    assert not paths[0].exists()
+
+
+def test_manual_geometry_does_not_call_zeopp(client, monkeypatch):
+    def extract(*args, **kwargs):
+        pytest.fail("Manual requests must not require Zeo++.")
+
+    def build(path, geometry, *, feature_names, **kwargs):
+        return pd.DataFrame(
+            [[geometry.get(name, 0.0) for name in feature_names]], columns=feature_names,
+        )
+
+    monkeypatch.setattr("src.api.extract_geometry", extract)
+    monkeypatch.setattr("src.api.build_phase3_features", build)
+    response = client.post(
+        "/api/predict", data=geometry_form(), files={"cif": cif_file()},
+    )
+    assert response.status_code == 200
+    assert response.json()["geometry_source"] == "manual"
+    assert response.json()["geometry_warning"] is None
+
+
+@pytest.mark.parametrize("error", [
+    FileNotFoundError("Zeo++ network not found"),
+    ValueError("Zeo++ timed out"),
+    ValueError("Zeo++ malformed output"),
+])
+def test_automatic_geometry_failure_stops_prediction(client, monkeypatch, error):
+    paths = []
+
+    def extract(path, **kwargs):
+        paths.append(path)
+        raise error
+
+    def build(*args, **kwargs):
+        pytest.fail("Features must not be built after geometry fails.")
+
+    monkeypatch.setattr("src.api.extract_geometry", extract)
+    monkeypatch.setattr("src.api.build_phase3_features", build)
+    response = client.post("/api/predict", files={"cif": cif_file()})
+    assert response.status_code == 400
+    assert str(error) in response.json()["detail"]["error"]
+    assert not paths[0].exists()
+
+
+@pytest.mark.parametrize("filename", ["hMOF-0", "hMOF-1"])
+def test_real_cif_only_prediction(client, filename):
+    if not all(os.environ.get(name) for name in ("ZEO_NETWORK_PATH", "MOF_SBU_PATH")):
+        pytest.skip("Set ZEO_NETWORK_PATH and MOF_SBU_PATH for the native pipeline test.")
+    path = Path(__file__).resolve().parents[1] / "notebook/sample/cif_files" / f"{filename}.cif"
+    response = client.post(
+        "/api/predict", files={"cif": (path.name, path.read_bytes(), "application/octet-stream")},
+    )
+    assert response.status_code == 200, response.text
+    result = response.json()
+    assert result["geometry_source"] == "zeopp"
+    assert set(result["geometry"]) == set(GEOMETRY_COLUMNS)
+    assert len(result["features"]) == 48
+    assert all(math.isfinite(value) for value in result["features"].values())
+    assert len(result["pressures"]) == 5
+    assert all(math.isfinite(point["uptake"]) for point in result["pressures"])
+    for point in result["pressures"]:
+        explanation = result["shap"][str(point["pressure"])]
+        assert explanation["baseline"] + sum(explanation["contributions"]) == pytest.approx(
+            point["uptake"], abs=1e-4,
+        )

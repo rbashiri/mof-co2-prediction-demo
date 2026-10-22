@@ -20,6 +20,13 @@ interface PredictResponse {
   gemini_summary: string | null
   gemini_error: string | null
   predictions_csv: string
+  geometry: Record<string, number>
+  geometry_source: 'zeopp' | 'manual'
+  geometry_warning: string | null
+  geometry_settings: {
+    surface_probe_radius_angstrom: number
+    volume_probe_radius_angstrom: number
+  } | null
 }
 
 const GEOMETRY_FIELDS = [
@@ -75,12 +82,6 @@ function PredictionProgress({ includeGemini }: { includeGemini: boolean }) {
 }
 
 export default function App() {
-  const [geometry, setGeometry] = useState<Record<string, string>>({
-    lcd: '',
-    pld: '',
-    void_fraction: '',
-    surface_area_m2g: '',
-  })
   const [file, setFile] = useState<File | null>(null)
   const [dragOver, setDragOver] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -91,14 +92,20 @@ export default function App() {
   const [selectedPressure, setSelectedPressure] = useState<string>('0.1')
   const [includeGemini, setIncludeGemini] = useState(false)
 
+  const selectFile = (nextFile: File) => {
+    setFile(nextFile)
+    setResult(null)
+    setError(null)
+  }
+
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
     setDragOver(false)
-    if (e.dataTransfer.files?.[0]) setFile(e.dataTransfer.files[0])
+    if (!loading && e.dataTransfer.files?.[0]) selectFile(e.dataTransfer.files[0])
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) setFile(e.target.files[0])
+    if (e.target.files?.[0]) selectFile(e.target.files[0])
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -109,7 +116,6 @@ export default function App() {
     setResult(null)
 
     const form = new FormData()
-    GEOMETRY_FIELDS.forEach(({ name }) => form.append(name, geometry[name]))
     form.append('cif', file)
     form.append('include_gemini', String(includeGemini))
 
@@ -140,7 +146,7 @@ export default function App() {
     <div className="container">
       <header>
         <h1>MOF CO₂ Uptake Predictor</h1>
-        <p>Upload a CIF and enter its four matching geometry values</p>
+        <p>Upload a CIF to extract all descriptors automatically and predict uptake</p>
       </header>
 
       <div className="card">
@@ -149,8 +155,8 @@ export default function App() {
         </button>
         {showAbout && (
           <div className="about-body">
-            Geometry values must describe the uploaded structure and are supplied by you,
-            not calculated by this app. The models predict simulated hMOF uptake; predictions
+            Zeo++ calculates geometry; MOFid/RDKit and pymatgen extract the remaining
+            descriptors. The models predict simulated hMOF uptake; predictions
             are not experimental measurements and accuracy on other MOF families has not been
             established.
           </div>
@@ -158,26 +164,6 @@ export default function App() {
       </div>
 
       <form onSubmit={handleSubmit}>
-        <div className="card">
-          <div className="grid">
-            {GEOMETRY_FIELDS.map(({ name, label }) => (
-              <div className="field" key={name}>
-                <label htmlFor={name}>{label}</label>
-                <input
-                  id={name}
-                  type="number"
-                  step="any"
-                  min={name === 'void_fraction' ? 0 : undefined}
-                  max={name === 'void_fraction' ? 1 : undefined}
-                  required
-                  value={geometry[name]}
-                  onChange={(e) => setGeometry((g) => ({ ...g, [name]: e.target.value }))}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-
         <div className="card">
           <label
             className={`dropzone ${dragOver ? 'dragover' : ''}`}
@@ -188,7 +174,7 @@ export default function App() {
             onDragLeave={() => setDragOver(false)}
             onDrop={handleDrop}
           >
-            <input type="file" accept=".cif" onChange={handleFileChange} hidden />
+            <input type="file" accept=".cif" onChange={handleFileChange} disabled={loading} hidden />
             <div>Drag & drop a CIF file here, or click to browse</div>
             {file && <div className="file-name">{file.name}</div>}
           </label>
@@ -220,7 +206,33 @@ export default function App() {
       {result && (
         <>
           <div className="card">
+            <h3>Geometry extracted by Zeo++</h3>
+            <table className="feature-table">
+              <thead><tr><th>Descriptor</th><th>Value</th></tr></thead>
+              <tbody>
+                {GEOMETRY_FIELDS.map(({ name, label }) => (
+                  <tr key={name}><th scope="row">{label}</th>
+                    <td>{Number(result.geometry[name].toPrecision(6)).toString()}</td></tr>
+                ))}
+              </tbody>
+            </table>
+            {result.geometry_settings && (
+              <p className="about-body">
+                Settings chosen by comparing Zeo++ geometry with reference values for
+                10 sample MOFs: {result.geometry_settings.surface_probe_radius_angstrom} angstrom
+                probe for surface area and {result.geometry_settings.volume_probe_radius_angstrom} angstrom
+                probe for void fraction.
+              </p>
+            )}
+          </div>
+          <div className="card">
             <h3>Predicted CO₂ uptake</h3>
+            {result.pressures.some((point) => point.uptake < 0) && (
+              <p role="alert" className="about-body">
+                The model returned negative uptake, which is not physically meaningful.
+                Values are shown unchanged; do not treat these predictions as validated.
+              </p>
+            )}
             <div className="metric-grid">
               {result.pressures.map((p) => (
                 <div className="metric" key={p.pressure}>

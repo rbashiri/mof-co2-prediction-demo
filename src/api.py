@@ -31,6 +31,10 @@ from src.gemini_summary import GeminiSummaryError, generate_gemini_summary
 from src.phase3_features import build_phase3_features
 from src.scientific_summary import PRESSURES, generate_pressure_comparison
 from src.train import GEOMETRY_COLUMNS
+from src.zeopp_geometry import (
+    GEOMETRY_WARNING, SURFACE_PROBE_RADIUS, SURFACE_SAMPLES,
+    VOLUME_PROBE_RADIUS, VOLUME_SAMPLES, extract_geometry,
+)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -146,7 +150,7 @@ def _resolve_sbu_path(settings: dict) -> str | None:
 
 def _features_from_upload(
     cif_bytes: bytes,
-    geometry: dict[str, float],
+    geometry: dict[str, float] | None,
     names: list[str],
     sbu_path: str | None,
     timeout: float,
@@ -154,6 +158,8 @@ def _features_from_upload(
     with tempfile.TemporaryDirectory(prefix="mof-co2-upload-") as directory:
         path = Path(directory) / "structure.cif"
         path.write_bytes(cif_bytes)
+        if geometry is None:
+            geometry = extract_geometry(path, timeout=timeout)
         return build_phase3_features(
             path, geometry, feature_names=names, sbu_path=sbu_path, timeout=timeout,
         )
@@ -195,10 +201,10 @@ def _generate_summary(
 
 @app.post("/api/predict")
 async def predict(
-    lcd: float = Form(..., ge=0),
-    pld: float = Form(..., ge=0),
-    void_fraction: float = Form(..., ge=0, le=1),
-    surface_area_m2g: float = Form(..., ge=0),
+    lcd: float | None = Form(None, ge=0),
+    pld: float | None = Form(None, ge=0),
+    void_fraction: float | None = Form(None, ge=0, le=1),
+    surface_area_m2g: float | None = Form(None, ge=0),
     cif: UploadFile = File(...),
     include_gemini: bool = Form(False),
 ) -> JSONResponse:
@@ -211,12 +217,22 @@ async def predict(
     if models is None or settings is None or names is None:
         raise HTTPException(status_code=503, detail={"error": "Models not loaded"})
 
-    geometry = {
+    supplied_geometry = {
         "lcd": lcd,
         "pld": pld,
         "void_fraction": void_fraction,
         "surface_area_m2g": surface_area_m2g,
     }
+    supplied = [value is not None for value in supplied_geometry.values()]
+    if any(supplied) and not all(supplied):
+        raise HTTPException(
+            status_code=422,
+            detail={"error": "Supply all four geometry values, or omit all four for Zeo++ extraction."},
+        )
+    geometry = (
+        {name: float(value) for name, value in supplied_geometry.items() if value is not None}
+        if all(supplied) else None
+    )
 
     try:
         cif_bytes = await cif.read()
@@ -224,7 +240,8 @@ async def predict(
             raise ValueError("The uploaded CIF is empty.")
 
         sbu_path = _resolve_sbu_path(settings)
-        features = _features_from_upload(
+        features = await run_in_threadpool(
+            _features_from_upload,
             cif_bytes, geometry, names, sbu_path,
             settings["extraction_timeout_seconds"],
         )
@@ -263,6 +280,21 @@ async def predict(
                 for _, row in predictions.iterrows()
             ],
             "features": {name: float(value) for name, value in features_row.items()},
+            "geometry": {name: float(features_row[name]) for name in GEOMETRY_COLUMNS},
+            "geometry_source": "zeopp" if geometry is None else "manual",
+            "geometry_settings": {
+                "profile": "experimental-sample-comparison-v1",
+                "surface_probe_radius_angstrom": SURFACE_PROBE_RADIUS,
+                "surface_channel_radius_angstrom": SURFACE_PROBE_RADIUS,
+                "volume_probe_radius_angstrom": VOLUME_PROBE_RADIUS,
+                "volume_channel_radius_angstrom": VOLUME_PROBE_RADIUS,
+                "surface_samples_per_atom": SURFACE_SAMPLES,
+                "volume_samples": VOLUME_SAMPLES,
+                "surface_area": "total accessible + inaccessible (m2/g)",
+                "void_fraction": "total probe-occupiable volume fraction",
+                "high_accuracy": True,
+            } if geometry is None else None,
+            "geometry_warning": GEOMETRY_WARNING if geometry is None else None,
             "shap": shap_by_pressure,
             "summary": summary,
             "gemini_summary": gemini_summary,
