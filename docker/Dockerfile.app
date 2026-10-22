@@ -24,7 +24,7 @@ RUN python -m pip install --no-cache-dir -r /app/requirements.txt
 COPY scripts/install_zeopp.py /app/scripts/install_zeopp.py
 RUN python /app/scripts/install_zeopp.py --destination /opt/zeopp
 ENV ZEO_NETWORK_PATH=/opt/zeopp/network \
-    GEMINI_MODEL=gemini-3.5-flash
+    GEMINI_MODEL=gemini-3.5-flash-lite
 
 COPY src/ /app/src/
 COPY configs/config.yaml /app/configs/config.yaml
