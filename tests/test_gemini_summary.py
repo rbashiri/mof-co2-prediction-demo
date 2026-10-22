@@ -228,15 +228,20 @@ def test_prompt_separates_vocabulary_from_facts():
     prompt = build_prompt(UPTAKES, SECTIONS)
     facts = json.loads(prompt.split("instructions:\n")[1])
     assert facts["scientific_sections"] == SECTIONS
+    assert facts["endpoint_uptake_difference_mol_kg"] == {
+        "from_pressure_bar": 0.01,
+        "to_pressure_bar": 2.5,
+        "difference_mol_kg": 4.31,
+    }
     assert facts["feature_labels"]["total_ring_count"] == "ring count in extracted linkers"
-    assert "vocabulary, not evidence" in prompt
-    assert "do not force a feature-switch story" in prompt
-    assert "separate fixed limitations note" in prompt
+    assert "Do not interpret the glossary as evidence" in prompt
+    assert "Do not force a feature-switch narrative" in prompt
+    assert "separate limitations note" in prompt
     assert facts["feature_labels"]["void_fraction"] == "void fraction"
     assert facts["feature_labels"]["pld"] == "pore limiting diameter"
-    assert "retaining exact scientific" in prompt
+    assert "Preserve exact descriptor names" in prompt
     assert "Do not infer selectivity, stability, or recyclability" in prompt
-    assert "hypothesis to test, not a finding" in prompt
+    assert "hypothesis to test or a proposed validation step, never as an established finding" in prompt
     assert facts["predictions"] == [
         {"pressure_bar": p, "uptake_mol_kg": u}
         for p, u in zip([0.01, 0.05, 0.1, 0.5, 2.5], UPTAKES, strict=True)
