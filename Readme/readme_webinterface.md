@@ -4,27 +4,157 @@
 
 ## Goal
 
-Run a Streamlit demo around the selected **Phase 3 Model B** models:
+### Active React/FastAPI workflow
 
-**CIF -> Zeo++ geometry + MOFid/RDKit/pymatgen chemistry -> validation ->
-XGBoost predictions -> SHAP -> local and optional Gemini explanations**
+This is a hackathon MVP focused on demonstrating the working application,
+with broader CIF support and scientific validation planned as future work.
+The [MVP test results and limitations](../README.md#hackathon-mvp-scope-tests-and-next-steps)
+include both successful uploads and the failed additional CIF; failures are
+not treated as completed predictions.
 
-Gemini narrates validated model outputs only. It does not calculate uptake,
-replace XGBoost, or receive the uploaded CIF.
+Upload a CIF without entering geometry. The backend now runs Zeo++ for
+LCD, PLD, total probe-occupiable void fraction, and total surface area, then
+MOFid/RDKit and pymatgen for the remaining descriptors before prediction.
+The extracted geometry is displayed alongside the existing five-pressure
+predictions, SHAP and CSV download. See the root [README](../README.md) for
+installation, exact Zeo++ settings, API compatibility and focused tests.
+The geometry card shows a brief explanation of how the probe settings were
+chosen from ten sample MOFs. Detailed definitions and limitations remain in
+the README and API geometry metadata rather than a second paragraph in the card.
+The original training geometry calculation is unknown; automatic results
+are not claimed to reproduce it. Extraction failures stop the request.
+
+The sections below also describe the retained legacy Streamlit workflow,
+which still accepts manual geometry.
+
+Build a Streamlit demo around the selected **Phase 3 Model B** models:
+
+**Prepared MOF features -> validation -> XGBoost predictions -> SHAP
+explanations -> optional LLM scientific summary**
+
+The LLM writes a summary of model outputs; it does not calculate uptake or
+replace XGBoost.
+
+### React first-version additions
+
+The bottom team/contact section credits Robabeh Bashiri (project lead),
+Ripunjay Kumar, and Umer Farooq, with initial-based avatars. It includes
+Robabeh's LinkedIn, GitHub and email links and a CSU Chico campus photo beside
+the contact form, without an additional affiliation or address panel.
+It is visible before and after a prediction.
+Team details and the contact email can be edited in `frontend/src/TeamContact.tsx`;
+styles are in `frontend/src/TeamContact.css`, and the supplied campus photo is
+in `frontend/public/csu-chico-campus.png`. No university endorsement is implied.
+The contact form opens the visitor's email application with a composed message;
+it does not send or store messages. Visitors must press Send in their email app.
+
+An always-visible **About these predictions** card above the upload form
+introduces the MVP and model estimates. Four colored tool tiles show the roles
+of Zeo++, MOFid, RDKit and pymatgen. No click is needed to read the explanation.
+
+The React interface keeps its existing line chart and adds a five-pressure
+comparison table. Highest and lowest labels use the actual predictions,
+including ties, rather than assuming that uptake increases with pressure.
+Labels use six significant figures; the CSV retains the original values.
+The uptake line chart uses a labeled logarithmic pressure axis to separate
+the low-pressure points. The selected-pressure SHAP chart separates feature
+names, signed bars around a zero line, and numerical values into distinct
+columns. Both charts scroll horizontally on narrow screens to keep labels
+readable; predictions and SHAP values are not changed.
+
+Predictions appear before any optional AI generation. The **Click here to learn
+more about the results** button at the end of the results requests a separate
+Gemini explanation of the existing predictions. There is no upload-form AI
+checkbox and no need to reupload or repeat extraction, predictions or SHAP.
+The button sends validated uptake values and endpoint SHAP summary sections
+to Google only when clicked.
+No CIF file, filename, full dataset, or model file is included. Predictions,
+SHAP and CSV downloads remain available if Gemini fails; the UI displays the
+failure explicitly. Rule-based sections are retained internally as validated
+Gemini input and in the API response for compatibility, but are not displayed
+in React. The old Streamlit app is unchanged.
+
+While a prediction request is pending, a decorative molecular animation displays
+**Examining your MOF...** and elapsed seconds, not an estimated countdown or
+unverified processing stages. The separate explanation button has its own
+loading state while prediction results remain visible. The indicator stops on success or failure, resets for each
+request, and respects reduced-motion preferences.
+
+The prediction API returns an opaque `explanation_token`. Posting to
+`/api/explanations/{token}` generates the explanation from server-retained
+validated facts, not client-supplied prompt text. The current single-worker
+MVP retains at most 128 contexts for 30 minutes in process memory, without
+the CIF or filename. Expired/evicted contexts and server restarts require a
+new prediction; HTTP 410 explains this explicitly. Multi-worker deployment
+needs a shared context store or sticky routing. The legacy `include_gemini`
+API parameter remains available for existing clients but is not sent by React.
+
+Gemini is disabled by default. After your team approves external data sharing,
+configure these server-side environment variables (for example, in Render):
+
+- `GEMINI_ENABLED=true`
+- `GEMINI_API_KEY`: a private API key, never committed or entered in the browser.
+- `GEMINI_MODEL`: a Gemini Flash model ID verified as available to your Google
+  project. No model ID or free quota is assumed; check current provider terms.
+
+The implementation adapts Umer's prompt/request/validation approach into
+`src/gemini_summary.py`; the local `LLM-umer/` review copy is not imported or
+required for deployment. Each provider request has a 25-second network timeout.
+Each summary makes one provider request, with no automatic retries or delays.
+HTTP errors, network failures, and invalid drafts display an explicit summary
+error; no error string is returned as a generated draft. The network timeout
+applies to socket operations, not a strict end-to-end deadline.
+HTTP failures show fixed guidance based on status and recognized provider error
+codes, never raw provider messages, request data, keys, or response metadata.
+HTTP 400 requires checking configuration rather than repeatedly retrying.
+Output
+must be 120-180 words with three ordered plain-text sections: **ADSORPTION
+BEHAVIOR**, **STRUCTURE-PROPERTY INSIGHTS**, and **RESEARCH IMPLICATIONS**.
+It interprets the pressure trend and endpoint SHAP evidence instead of repeating
+the complete prediction table, and suggests one or two follow-up investigations
+explicitly labeled as hypotheses. The validator checks section headings and word
+count, rejects unknown numeric values, mismatched explicitly formatted
+pressure/uptake pairs, repeated pairs or a complete formatted table, and
+placeholder feature names. Other numeric phrasing is checked for known values,
+not for correct association with a pressure or descriptor. The interpretation uses
+plain-language labels for the actual endpoint contributors, explaining upward
+and downward pushes on this structure's predicted uptake rather than assuming
+the reader understands SHAP. Scientific descriptor terms such as void fraction
+and pore limiting diameter are preserved. The label glossary supplies vocabulary, not
+evidence of chemistry or importance. General limitations and separate-model
+baseline cautions appear in a concise **Scientific limitations** section below
+the draft, rather than being required verbatim in every paragraph. Specific
+warnings such as negative or non-monotonic uptake remain in the prompt.
+These checks cannot
+prove correct SHAP interpretation or eliminate unsupported chemical claims;
+the limitations identify the interpretation as AI-generated and requiring
+experimental validation. Under **Scientific interpretation**, the response is
+displayed in three sections: **Predicted adsorption behavior**,
+**Structure–property relationships**, and **Suggested next investigation**.
+Section headings are bold green on light-blue backgrounds. The previous
+Gemini attribution line and long reading guide are replaced by the single
+concise **Scientific limitations** section.
+
+Offline regression tests make no provider requests:
+
+```bash
+python -m pytest tests/test_gemini_summary.py tests/test_api.py
+```
 
 ## Current state versus target
 
 | Component | Current state | Phase 3 target |
 |-----------|---------------|----------------|
-| Interface | CIF-only Streamlit upload with computed geometry and limitations | Broader browser and deployment validation |
+| Interface | Four geometry inputs + CIF upload; scientific limitations in a collapsed section | Broader browser and deployment validation |
 | Models | Five configured Phase 3 Model B joblib models; baseline frozen as phase3-model-b-v1 | Distribute versioned bundle and complete native deployment recipe |
 | Predictions | Five pressures, non-scrolling table/chart/CSV download for geometry + CIF | Preserve these outputs |
 | SHAP | Waterfall for the geometry + CIF row at a selected pressure | Explain the same Phase 3 model and feature row used for prediction |
-| Scientific summary | Local rule-based summary plus separately requested Gemini draft | Continue scientific review and provider/data-policy review |
-| Deployment | Streamlit Docker image with native MOFid and Zeo++ | Broader hosted deployment validation |
+| Scientific summary | Opt-in Gemini draft in React; disabled by default; validated rule-based facts retained internally | Configure approved provider access and review generated summaries |
+| Deployment | Local prototype; Dockerfile is only a base image | Tested, reproducible deployment with separately supplied model artifacts |
 
 The current [app](../src/app.py) is a **local Phase 3 demo**. It requires
-trusted corrected model artifacts plus native MOFid and Zeo++ executables.
+trusted corrected model artifacts and an installed native MOFid executable.
+The LLM summary and reproducible hosted deployment remain unfinished.
 
 ## 1. Prepare the Phase 3 model bundle
 
@@ -79,10 +209,14 @@ retraining is not required for interface integration.
 
 ## 2. Define and validate inputs
 
-Phase 3 requires **geometry + linker + CIF/metal descriptors**. The user
-supplies one CIF; prepared-feature CSV and manual geometry entry are not
-exposed. Zeo++ computes the four geometry values before the existing chemistry
-pipeline runs.
+Phase 3 requires **geometry + linker + CIF/metal descriptors**, not just four
+geometry values. Agree on the input experience before implementing it:
+
+- The demo accepts a CIF and its four matching geometry values; prepared-feature CSV upload is not exposed.
+- Manual entry requires the complete feature schema; alternatively, selecting
+  an existing MOF could populate a prepared row.
+- The agreed next interface accepts four supplied geometry values and a CIF.
+  Geometry is not calculated from the CIF; Zeo++ is not required.
 
 For the planned geometry-plus-CIF workflow,
 [phase3_extract_metal_descriptors.py](../src/phase3_extract_metal_descriptors.py)
@@ -101,13 +235,12 @@ The script is connected through the combined feature function to the app.
    [extract_linkers.py](../src/extract_linkers.py).
 3. All 29 aggregated linker descriptors from
    [linker_descriptors.py](../src/linker_descriptors.py).
-4. The 15 pymatgen metal/lattice descriptors and four Zeo++ geometry values.
+4. The 15 pymatgen metal/lattice descriptors and four supplied geometry values.
 
 The result is one numeric row with 48 Model B inputs. Pass the saved model's
-feature names to enforce its exact schema and ordering. Missing/invalid Zeo++
-output, failed chemistry extraction, rejected fragments, non-finite
-descriptors, and incompatible model schemas raise errors; values are not
-guessed.
+feature names to enforce its exact schema and ordering. Missing/invalid
+geometry, failed extraction, rejected fragments, non-finite descriptors,
+and incompatible model schemas raise errors; descriptors are not guessed.
 Extraction uses temporary output directories that are cleaned automatically.
 
 Set `MOF_SBU_PATH` to the installed MOFid `bin/sbu` executable, or supply
@@ -127,12 +260,15 @@ python -m pip install -r requirements-dev.txt
 
 ```python
 from src.phase3_features import build_phase3_features
-from src.zeopp_geometry import extract_geometry
 
-geometry = extract_geometry("uploaded_structure.cif")
 features = build_phase3_features(
     "uploaded_structure.cif",
-    geometry,
+    {
+        "lcd": 11.75,
+        "pld": 10.75,
+        "void_fraction": 0.795539,
+        "surface_area_m2g": 3676.3,
+    },
     feature_names=model.get_booster().feature_names,
 )
 predicted_uptake = model.predict(features)
@@ -140,8 +276,8 @@ predicted_uptake = model.predict(features)
 
 Here `model` is a trusted, loaded Phase 3 Model B artifact. Repeat prediction
 with the other four models after verifying their feature order agrees.
-`extract_geometry` uses the experimental Zeo++ profile documented in the root
-README; it is not known to match the original training pipeline exactly.
+The supplied geometry must correspond to the uploaded structure; the function
+cannot verify that correspondence from the CIF alone.
 
 All 48 inputs matched the reference dataset on the five examples above at
 `rtol=1e-8`, `atol=1e-8`; predictions from all five pressure models matched
@@ -161,10 +297,10 @@ executable respectively. Those five integration cases are skipped when the
 reference environment is not configured. Native MOFid installation remains
 a separate deployment prerequisite, not a Python-only dependency.
 
-The app calls this pipeline after the user clicks **Extract descriptors and
+The app calls this function after the user clicks **Extract descriptors and
 predict**. Selecting another SHAP pressure reuses the extracted row; changing
-the uploaded CIF hides prior results until prediction is requested again.
-Extraction failures are displayed rather than replaced with fabricated
+geometry or the uploaded CIF hides prior results until prediction is requested
+again. Extraction failures are displayed rather than replaced with fabricated
 features.
 
 Validate required columns, numeric types, missing/non-finite values, and
@@ -225,7 +361,7 @@ Numbers are displayed with six significant digits; the prediction table and
 download retain their existing behavior. Negative or non-monotonic predictions
 are flagged, not clipped or smoothed.
 
-Generation requires an explicit click. Changing the CIF, configured
+Generation requires an explicit click. Changing the CIF, geometry, configured
 model context, or SHAP pressure clears the summary; generate it again for the
 new context. A generation error is shown explicitly and the button can be
 clicked to retry. Predictions and SHAP remain independent of summary failures.
@@ -237,15 +373,17 @@ To review the wording:
 
 1. Start the app using the quick-start instructions below.
 2. Upload `hMOF-0.cif` from [sample CIFs](../notebook/sample/cif_files/).
-3. Click **Extract descriptors and predict** and inspect the four computed
-   geometry values, then click **Generate scientific summary**.
+   Enter its four geometry values from the matching row of the
+   [sample table](../notebook/sample/mof_co2_geometry_10.csv).
+   The table's uptake columns are reference data, not new app predictions.
+3. Click **Extract descriptors and predict**, then **Generate scientific summary**.
 4. Compare all five uptake numbers against the app table and verify the signed
    endpoint difference. Select 0.01 bar in the waterfall and generate the summary
    again to compare the low-pressure contributions, signs, and baseline. Repeat
    with 2.5 bar for the higher-pressure section. Check the simulated-data,
    separate-baseline, local-importance, and non-causality limitations.
-5. Repeat for `hMOF-10` and `hMOF-100`. Change pressure or upload to confirm
-   the old summary disappears.
+5. Repeat for `hMOF-10` and `hMOF-100`, using each structure's own geometry.
+   Change pressure and geometry to confirm the old summary disappears.
 
 Focused validation (headless plotting):
 
@@ -259,18 +397,29 @@ available. They validate numerical
 consistency, not new CIF extraction or scientific approval. Native MOFid is
 still required for uploads.
 
-### Stage 2: optional Gemini draft (implemented)
+### Stage 2: real LLM (not implemented)
 
-After the local summary exists, **Generate Gemini explanation** makes a
-separate request without repeating CIF extraction, prediction, or SHAP.
-The button is available only when `GEMINI_ENABLED=true`; the server also
-requires `GEMINI_API_KEY` and a `GEMINI_MODEL` beginning with `gemini-`.
+Proceed after Susan has reviewed the three examples and accepted the units,
+wording, signs, limitations, and unchanged predictions. Agree on provider,
+model, budget, credentials owner, and allowed data before adding any API call.
+Keep the local mode explicitly labelled, separate from AI-generated text.
+Mocked provider-response tests belong to this stage; Stage 1 tests mock local
+summary failures, not a nonexistent LLM.
 
-The request contains five prediction values, validated local summary sections,
-and a feature-label glossary. It does not contain the CIF. Provider responses
-must pass heading, length, pressure/value, and numeric-evidence checks before
-display. Errors are public-safe and leave all local results intact. The draft
-is labelled AI-generated and still requires scientific review.
+The team has selected the LLM summary for the hackathon delivery scope. See
+the [task and ownership plan](../docs/hackathon_tasks_and_ownership.md) for its
+scientific contract, acceptance tests, owners, and deadline. The core
+prediction/SHAP workflow must remain independent of LLM availability.
+
+Choose a provider together before implementation. Decide on local versus
+hosted execution, costs, credentials, and what information may leave the
+computer.
+
+The summary should state the predicted uptake by pressure, describe the
+strongest SHAP contributions, and acknowledge that the model was evaluated
+on simulated hMOF data. It must not invent mechanisms, citations, or
+experimental validation. Keep predictions and SHAP usable if the summary
+service is unavailable; show any service failure explicitly.
 
 ## 6. Test and deploy
 
@@ -289,10 +438,7 @@ From the repository root, in an activated Python environment:
 python -m pip install -r requirements.txt
 # Set this to your installed MOFid native executable:
 export MOF_SBU_PATH="/path/to/mofid/bin/sbu"
-python scripts/install_zeopp.py
-# Only needed when Zeo++ is installed outside its default location:
-export ZEO_NETWORK_PATH="/path/to/zeo++-0.3/network"
-python -m streamlit run src/app.py
+streamlit run src/app.py
 ```
 
 ### Dependency declarations
@@ -306,24 +452,25 @@ python -m streamlit run src/app.py
   pytest/ipytest for tests. Use this file for research and development.
 - The previous broad package list was reviewed against current source,
   retained notebook imports, and setup instructions. Unused direct declarations
-  for MLflow, Databricks, web API frameworks, database tooling, the Docker Python
+  for MLflow, Databricks, Flask/FastAPI, database tooling, the Docker Python
   SDK, and other unrelated tools were removed. Dependencies required by the
   retained packages are still installed transitively by pip. No packages were
   uninstalled from the existing environment.
-- Native MOFid's `sbu` executable and Zeo++'s `network` executable remain
-  separate requirements. Adding a PyPI package named `mofid` does not
-  reproduce its native installation.
+- Native MOFid's `sbu` executable and supporting resources remain a separate
+  requirement. Adding a PyPI package named `mofid` does not reproduce that
+  native installation. CMake is a build tool, not an app runtime dependency.
 - These files are dependency declarations, not a complete transitive lock or
   a certification of a fresh installation. Capture a reproducible environment
   and native MOFid setup, then validate them before formally freezing models.
 
 The app needs the five corrected Phase 3 Model B artifacts described above in
 the configured models directory. Reference datasets are not required for
-CIF-only inference.
+geometry + CIF inference: users supply their own geometry values.
 
-1. Upload a CIF and click **Extract descriptors and predict**.
-2. Review Zeo++ geometry, predictions, and a selected-pressure SHAP plot.
-3. Generate the local summary and optionally request a Gemini explanation.
+1. Enter LCD and PLD in angstrom, void fraction between 0 and 1, and surface
+   area in m2/g. These values must describe the uploaded structure.
+2. Upload a CIF and click **Extract descriptors and predict**.
+3. Review predictions, download them, and choose a pressure for SHAP.
 
 The page shows a welcome heading and short upload instructions. Scientific
 limitations remain available under **About these predictions**, collapsed by
@@ -340,6 +487,6 @@ No personal machine paths are embedded in the app.
 
 Configure file locations in [configs/config.yaml](../configs/config.yaml).
 Focused app tests are in [tests/test_interface.py](../tests/test_interface.py).
-The real-CIF app test requires `MOF_REFERENCE_CIF_DIR`, `MOF_SBU_PATH`, and
-`ZEO_NETWORK_PATH`. Next milestones are broader uploaded-structure validation
-and hosted deployment validation.
+The real-CIF app test requires `MOF_REFERENCE_CIF_DIR` and `MOF_SBU_PATH`.
+Next milestones are broader uploaded-structure validation, reproducible
+deployment, and the optional LLM summary.

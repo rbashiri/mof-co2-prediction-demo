@@ -7,4 +7,5 @@ seaborn==0.13.2
 
 # Tests, including the retained notebook-style model tests.
 pytest==9.1.1
+httpx==0.27.2
 ipytest==0.14.2

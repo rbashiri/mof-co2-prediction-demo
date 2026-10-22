@@ -4,8 +4,9 @@ This setup builds two images and runs one application container:
 
 - [Dockerfile.mofid](Dockerfile.mofid) builds `mofid-base:demo`, containing
   Python 3.12.3, native MOFid, and its bundled Open Babel libraries/resources.
-- [Dockerfile.app](Dockerfile.app) builds `mof-co2-app:demo` on that base,
-  adding Zeo++ 0.3, the Streamlit application, configuration, and five models.
+- [Dockerfile.app](Dockerfile.app) builds the runnable web app on that base.
+  It bundles a FastAPI backend, a React + Vite frontend, the five Phase 3
+  Model B joblib models, Zeo++ 0.3, and the application configuration.
 
 MOFid source is pinned to revision
 `36873683083c7bc62c1da2062df2833adc35b48a`. Package repository contents and
@@ -24,20 +25,35 @@ docker build -f docker/Dockerfile.app -t mof-co2-app:demo .
 Build the MOFid image first: the application requires that local base image.
 The root [.dockerignore](../.dockerignore) limits the application build
 context to required files, excluding local environments and datasets.
+
 [Dockerfile.app](Dockerfile.app) accepts `BASE_IMAGE` (default
-`mofid-base:demo`) so local builds stay unchanged while CI can point at the
+`mofid-base:demo`) so local builds stay unchanged while CI can point at a
 pushed base image.
 
 ## CI publish to Docker Hub
 
 A GitHub Actions workflow ([`.github/workflows/docker-publish.yml`](../.github/workflows/docker-publish.yml))
-builds both images on every push and publishes them to Docker Hub
-(`ripunjaykumar0902/mof-co2`) using repository secrets `DOCKERHUB_USERNAME`
-and `DOCKERHUB_TOKEN`. For branch `osi/app`, the published app image tag is
-`ripunjaykumar0902/mof-co2:osi-app` (plus `sha-<commit>`).
+builds both images on every push and publishes them to Docker Hub.
 
-The Streamlit server listens on `PORT` when set (Render and similar hosts) and
-on `8501` otherwise.
+Add these repository secrets:
+
+- `DOCKERHUB_USERNAME`: `ripunjaykumar0902`
+- `DOCKERHUB_TOKEN`: Docker Hub access token with permission to push
+
+Both builds go to the single Hub repository `ripunjaykumar0902/mof-co2`.
+The runnable app uses tags `sha-<sha>` and the branch name. Pushes to the
+default branch also receive `demo` and `latest`. The MOFid base uses the
+same repository with `mofid-` prefixes (`mofid-sha-<sha>`, `mofid-demo`).
+You only need the app tags to pull and run.
+
+```bash
+docker pull ripunjaykumar0902/mof-co2:demo
+docker run --rm -p 127.0.0.1:8501:8501 ripunjaykumar0902/mof-co2:demo
+```
+
+On this `image/publish` branch the app tag is `image-publish` until it is
+merged to `main`. The first MOFid compile can take 15-30 minutes; later
+runs reuse GitHub Actions cache when the base Dockerfile is unchanged.
 
 ## Native fragmentation smoke test
 
@@ -55,46 +71,78 @@ Java-based topology workflow is not included.
 
 ```bash
 docker run --rm -p 127.0.0.1:8501:8501 mof-co2-app:demo
+# after CI publish:
+# docker run --rm -p 127.0.0.1:8501:8501 ripunjaykumar0902/mof-co2:demo
 ```
+
+The FastAPI server listens on `PORT` when that environment variable is set
+(Render and similar hosts), and on 8501 otherwise. Map the host port to the
+same value.
 
 Open <http://localhost:8501>. For a remote VS Code workspace, forward port
 8501. Stop the foreground container with Ctrl+C; the images remain available.
 
-Supply one CIF. Zeo++ automatically calculates largest cavity diameter, pore
-limiting diameter, total probe-occupiable void fraction, and total surface
-area. MOFid/RDKit and pymatgen derive the remaining descriptors. The image
-sets `ZEO_NETWORK_PATH=/opt/zeopp/network`; native MOFid is supplied by the
-base image.
+Supply one CIF. Zeo++ automatically extracts largest cavity diameter
+(angstrom), pore limiting diameter (angstrom), total probe-occupiable void
+fraction (0-1), and total surface area (m2/g, including inaccessible pockets).
+MOFid/RDKit and pymatgen extract the
+remaining model features. The app image builds the checksum-pinned Zeo++ source
+using the base image's GNU build tools and sets
+`ZEO_NETWORK_PATH=/opt/zeopp/network`.
+See the root [README](../README.md) for calculation settings and limitations.
 
-To enable the separately requested Gemini explanation, pass credentials only
-at runtime:
+## Local development
 
 ```bash
-docker run --rm -p 127.0.0.1:8501:8501 \
-  -e GEMINI_ENABLED=true \
-  -e GEMINI_API_KEY \
-  -e GEMINI_MODEL=gemini-3.5-flash \
-  mof-co2-app:demo
+# Terminal 1: API
+uvicorn src.api:app --reload --port 8000
+
+# Terminal 2: React dev server
+cd frontend
+npm install
+npm run dev
 ```
 
-The app remains fully usable without these variables.
+Vite proxies `/api` to `http://localhost:8000`. For production, the container
+serves the built `frontend/dist` files from FastAPI's root mount.
 
 ## Validation and remaining deployment work
 
-The native IRMOF-1 smoke test previously returned node and linker fragments.
-The Zeo++ hackathon image also processed committed sample CIFs through
-automatic geometry, 48-feature construction, five predictions, SHAP, and CSV
-checks. Re-run those checks for this Streamlit image after building it:
+The Zeo++ application image was built and validated locally on October 21,
+2026, using the existing pinned-MOFid base image. The application image
+includes the native executables; validation required no host executable
+paths, bind-mounted models, or external AI credentials.
+
+Container HTTP checks passed for:
+
+- Model startup and `/api/health`.
+- The frontend HTML, JavaScript and CSS; the upload screen also rendered in
+  the browser.
+- CIF-only uploads of the committed `hMOF-0.cif` and `hMOF-1.cif` samples:
+  four automatic geometry values, 48 finite features, five finite uptake
+  predictions, and the `experimental-sample-comparison-v1` settings.
+- SHAP additivity at all five pressures and a decoded CSV whose five rows
+  matched the prediction response.
+- Explicit errors for empty/invalid CIFs (HTTP 400) and partial manual
+  geometry (HTTP 422), without leaving extraction directories in `/tmp`.
+
+Repeat a basic container smoke test from the repository root:
 
 ```bash
+# Terminal 1 (after building the images above):
 docker run --rm -p 127.0.0.1:8501:8501 mof-co2-app:demo
+
+# Terminal 2:
+curl --fail http://127.0.0.1:8501/api/health
+curl --fail \
+  -F cif=@notebook/sample/cif_files/hMOF-0.cif \
+  http://127.0.0.1:8501/api/predict
 ```
 
-Open <http://localhost:8501>, upload
-`notebook/sample/cif_files/hMOF-0.cif`, and verify four geometry values, five
-finite predictions, SHAP, and CSV download. Confirm invalid CIFs fail without
-substituting descriptors. These checks establish execution, not prediction
-accuracy or generalization.
+These checks establish application execution, not prediction accuracy on
+arbitrary MOFs. Unsupported MOFid fragmentation and RDKit valence errors
+still stop prediction explicitly. The browser's native CSV-save interaction
+was not certified by these HTTP checks.
 
 Hugging Face deployment is not yet validated: a Docker Space
 cannot access the local `mofid-base:demo` tag. Publish an accessible base

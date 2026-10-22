@@ -8,6 +8,11 @@ data/
 # Small sample inputs included for the demo
 !notebook/sample/mof_co2_geometry_10.csv
 !notebook/sample/cif_files/*.cif
+!frontend/*.json
+
+# Frontend build & dependencies
+node_modules/
+frontend/dist/
 
 # local Python environment, different on every machine, often large
 .venv/

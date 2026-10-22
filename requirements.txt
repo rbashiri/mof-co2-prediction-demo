@@ -1,17 +1,19 @@
-# Phase 3 prediction, CIF descriptors, SHAP, and Streamlit.
+# Phase 3 prediction, CIF descriptors, SHAP, and FastAPI backend.
 # Runtime versions validated locally with Python 3.12.3.
 # Native MOFid (sbu + supporting resources) must be installed separately.
 # Direct dependencies and selected scientific pins; not a full environment lock.
+fastapi==0.115.0
 joblib==1.5.3
 matplotlib==3.11.1
 numpy==2.5.1
 pandas==2.3.3
 pymatgen==2026.9.24
 pymatgen-core==2026.10.2
+python-multipart==0.0.12
 PyYAML==6.0.3
 rdkit==2026.3.4
 scikit-learn==1.9.0
 scipy==1.18.0
 shap==0.52.0
-streamlit==1.65.0
+uvicorn[standard]==0.54.0
 xgboost==3.4.1

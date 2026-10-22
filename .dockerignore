@@ -4,10 +4,10 @@
 # Application build inputs.
 !requirements.txt
 !mof_models.py
-!scripts/
-!scripts/install_zeopp.py
 !src/
 !src/**
+!scripts/
+!scripts/install_zeopp.py
 !configs/
 !configs/config.yaml
 !results/
@@ -15,7 +15,18 @@
 !results/models/*.joblib
 !docker/
 !docker/Dockerfile.app
+!frontend/
+!frontend/package.json
+!frontend/package-lock.json
+!frontend/tsconfig.json
+!frontend/tsconfig.node.json
+!frontend/vite.config.ts
+!frontend/index.html
+!frontend/src/
+!frontend/src/**
 
-# Exclude generated Python files even within included folders.
+# Exclude generated files even within included folders.
 **/__pycache__/
 **/*.pyc
+frontend/node_modules/
+frontend/dist/
