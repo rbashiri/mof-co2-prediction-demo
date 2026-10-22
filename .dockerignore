@@ -4,6 +4,8 @@
 # Application build inputs.
 !requirements.txt
 !mof_models.py
+!scripts/
+!scripts/install_zeopp.py
 !src/
 !src/**
 !configs/

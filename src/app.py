@@ -1,4 +1,4 @@
-"""Streamlit Phase 3 demo using supplied geometry and CIF-derived descriptors."""
+"""Streamlit Phase 3 demo using CIF-derived geometry and chemistry descriptors."""
 
 import logging
 import math
@@ -9,6 +9,10 @@ import tempfile
 from pathlib import Path
 
 import joblib
+import matplotlib
+
+matplotlib.use("Agg")
+
 import matplotlib.pyplot as plt
 import pandas as pd
 import shap
@@ -20,9 +24,18 @@ if not __package__:
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from src.paths import CONFIG_PATH, MODELS_DIR, PROJECT_ROOT
+from src.gemini_summary import GeminiSummaryError, generate_gemini_summary
 from src.phase3_features import build_phase3_features
 from src.scientific_summary import PRESSURES, SUMMARY_LABEL, generate_pressure_comparison
 from src.train import GEOMETRY_COLUMNS
+from src.zeopp_geometry import (
+    GEOMETRY_WARNING,
+    SURFACE_PROBE_RADIUS,
+    SURFACE_SAMPLES,
+    VOLUME_PROBE_RADIUS,
+    VOLUME_SAMPLES,
+    extract_geometry,
+)
 
 LOGGER = logging.getLogger(__name__)
 GEOMETRY_LABELS = {
@@ -31,6 +44,42 @@ GEOMETRY_LABELS = {
     "void_fraction": "Void fraction (0-1)",
     "surface_area_m2g": "Surface area (m2/g)",
 }
+ASSETS_DIR = Path(__file__).resolve().parent / "assets"
+TEAM_MEMBERS = (
+    {
+        "image": "team-robabeh.webp",
+        "name": "Robabeh Bashiri, PhD",
+        "role": "Project Lead",
+        "expertise": "Materials Scientist · Data Scientist",
+        "organization": "California State University, Chico",
+        "secondary": "Department of Chemistry and Biochemistry",
+        "location": "Chico, California, USA",
+        "links": (
+            ("GitHub", "https://github.com/rbashiri"),
+            ("LinkedIn", "https://www.linkedin.com/in/robabehbashiri"),
+        ),
+    },
+    {
+        "image": "team-ripunjay.webp",
+        "name": "Ripunjay Kumar",
+        "role": "Team Member",
+        "expertise": "Data Scientist · Machine Learning",
+        "organization": "Syngenta Group",
+        "secondary": "Indian Institute of Technology Madras",
+        "location": "Pune, India",
+        "links": (),
+    },
+    {
+        "image": "team-umer.webp",
+        "name": "Umer Farooq",
+        "role": "Team Member",
+        "expertise": "Materials Research · Energy Storage",
+        "organization": "Bahauddin Zakariya University",
+        "secondary": "Undergraduate Student · Volunteer Researcher",
+        "location": "Multan, Pakistan",
+        "links": (),
+    },
+)
 
 
 def load_app_settings() -> dict:
@@ -84,7 +133,6 @@ def load_models(model_paths: tuple[str, ...]) -> dict[float, XGBRegressor]:
 
 def features_from_upload(
     cif_bytes: bytes,
-    geometry: dict[str, float],
     names: list[str],
     sbu_path: str | None,
     timeout: float,
@@ -92,6 +140,7 @@ def features_from_upload(
     with tempfile.TemporaryDirectory(prefix="mof-co2-upload-") as directory:
         path = Path(directory) / "structure.cif"
         path.write_bytes(cif_bytes)
+        geometry = extract_geometry(path, timeout=timeout)
         return build_phase3_features(
             path, geometry, feature_names=names, sbu_path=sbu_path, timeout=timeout,
         )
@@ -116,16 +165,66 @@ def report_error(message: str, error: Exception) -> None:
     st.error(f"{message}: {error}")
 
 
+def render_team_contact() -> None:
+    st.divider()
+    st.caption("OUR COLLABORATORS")
+    st.header("Meet Our Team")
+    st.write(
+        "Bringing together materials science, machine learning, and "
+        "scientific interpretation."
+    )
+    columns = st.columns(3)
+    for column, member in zip(columns, TEAM_MEMBERS, strict=True):
+        with column:
+            image = ASSETS_DIR / member["image"]
+            if image.is_file():
+                st.image(str(image), width=128)
+            st.caption(member["role"])
+            st.subheader(member["name"])
+            st.write(member["expertise"])
+            st.write(member["organization"])
+            st.caption(member["secondary"])
+            st.caption(member["location"])
+            for label, url in member["links"]:
+                st.link_button(label, url)
+    st.subheader("Contact Us")
+    contact_columns = st.columns((1, 2))
+    campus = ASSETS_DIR / "csu-chico-campus.png"
+    with contact_columns[0]:
+        if campus.is_file():
+            st.image(str(campus), caption="California State University, Chico")
+    with contact_columns[1]:
+        st.write(
+            "Have a research question, collaboration idea, or feedback about the "
+            "MOF CO₂ Predictor? We'd love to hear from you."
+        )
+        st.link_button("Email the team", "mailto:robabeh.bashiri@gmail.com")
+        st.link_button("Project GitHub", "https://github.com/rbashiri")
+
+
+def resolve_sbu_path(configured: str | None) -> str | None:
+    candidate = os.environ.get("MOF_SBU_PATH") or configured
+    if candidate is not None:
+        if not isinstance(candidate, str) or not candidate:
+            raise ValueError("app.sbu_path must be a non-empty path or null.")
+        path = Path(candidate).expanduser()
+        return str(path if path.is_absolute() else PROJECT_ROOT / path)
+    default = Path.home() / "mofid-tools" / "mofid" / "bin" / "sbu"
+    return str(default) if default.is_file() and os.access(default, os.X_OK) else None
+
+
 def main() -> None:
     st.set_page_config(page_title="MOF CO2 Uptake Predictor", layout="wide")
     st.title("Welcome to the MOF CO₂ Uptake Predictor")
-    st.write("Upload a CIF and enter its four matching geometry values.")
+    st.write(
+        "Upload one CIF. Zeo++ calculates its pore geometry, while "
+        "MOFid/RDKit and pymatgen derive the remaining model descriptors."
+    )
     with st.expander("About these predictions"):
         st.write(
-            "Geometry values must describe the uploaded structure and are supplied "
-            "by you, not calculated by this app. The models predict simulated "
-            "hMOF uptake; predictions are not experimental measurements and "
-            "accuracy on other MOF families has not been established."
+            f"{GEOMETRY_WARNING} The models predict simulated hMOF uptake; "
+            "predictions are not experimental measurements and accuracy on other "
+            "MOF families has not been established."
         )
     try:
         settings = load_app_settings()
@@ -138,38 +237,27 @@ def main() -> None:
     assert names is not None
     names = list(names)
     with st.sidebar:
-        geometry = {
-            name: st.number_input(
-                GEOMETRY_LABELS[name], min_value=0.0,
-                max_value=1.0 if name == "void_fraction" else None,
-                value=0.0, format="%.6f",
-            )
-            for name in GEOMETRY_COLUMNS
-        }
         uploaded = st.file_uploader("CIF for this MOF", type=["cif"])
         submitted = st.button("Extract descriptors and predict")
     if uploaded is None:
         st.session_state.pop("phase3_summary", None)
+        st.session_state.pop("gemini_summary", None)
+        render_team_contact()
         return
     cif_bytes = uploaded.getvalue()
-    request = (cif_bytes, tuple(geometry.items()), paths, settings["model_label"])
+    request = (cif_bytes, paths, settings["model_label"])
     previous = st.session_state.get("phase3_result")
     if submitted:
         st.session_state.pop("phase3_summary", None)
+        st.session_state.pop("gemini_summary", None)
         st.session_state.pop("phase3_result", None)
         try:
             if not cif_bytes:
                 raise ValueError("The uploaded CIF is empty.")
-            sbu_path = os.environ.get("MOF_SBU_PATH") or settings.get("sbu_path")
-            if sbu_path is not None:
-                if not isinstance(sbu_path, str) or not sbu_path:
-                    raise ValueError("app.sbu_path must be a non-empty path or null.")
-                path = Path(sbu_path).expanduser()
-                sbu_path = str(path if path.is_absolute() else PROJECT_ROOT / path)
-            with st.spinner("Extracting linker and metal/lattice descriptors..."):
+            sbu_path = resolve_sbu_path(settings.get("sbu_path"))
+            with st.spinner("Extracting Zeo++ geometry and chemistry descriptors..."):
                 features = features_from_upload(
-                    cif_bytes, geometry, names, sbu_path,
-                    settings["extraction_timeout_seconds"],
+                    cif_bytes, names, sbu_path, settings["extraction_timeout_seconds"],
                 )
                 predictions = predict_all(models, features)
             previous = (request, features, predictions)
@@ -179,9 +267,22 @@ def main() -> None:
             return
     if previous is None or previous[0] != request:
         st.session_state.pop("phase3_summary", None)
+        st.session_state.pop("gemini_summary", None)
         st.write("Click 'Extract descriptors and predict' for the current inputs.")
+        render_team_contact()
         return
     _, features, predictions = previous
+    st.subheader("Zeo++ geometry")
+    geometry = pd.DataFrame([{
+        GEOMETRY_LABELS[name]: float(features.iloc[0][name]) for name in GEOMETRY_COLUMNS
+    }])
+    st.table(geometry, hide_index=True)
+    st.warning(GEOMETRY_WARNING)
+    st.caption(
+        f"Profile: surface probe/channel radius {SURFACE_PROBE_RADIUS} Å "
+        f"({SURFACE_SAMPLES} samples per atom); volume probe/channel radius "
+        f"{VOLUME_PROBE_RADIUS} Å ({VOLUME_SAMPLES} samples); high-accuracy mode."
+    )
     left, right = st.columns(2)
     with left:
         st.subheader("Predicted CO₂ uptake")
@@ -208,6 +309,7 @@ def main() -> None:
     saved_summary = st.session_state.get("phase3_summary")
     if explanation is None or (saved_summary is not None and saved_summary[0] != context):
         st.session_state.pop("phase3_summary", None)
+        st.session_state.pop("gemini_summary", None)
     st.subheader("Scientific summary")
     st.caption(f"{SUMMARY_LABEL}. Runs locally; no API key or external data sharing.")
     st.caption("Compares 0.01 and 2.5 bar, independently of the waterfall pressure above.")
@@ -240,6 +342,33 @@ def main() -> None:
             st.markdown(f"**{title}**")
             st.text(text)
         st.caption("Draft for scientific review, not an approved scientific interpretation.")
+        st.subheader("Optional Gemini explanation")
+        st.caption(
+            "Runs only when requested. Prediction values and validated SHAP summary "
+            "text are sent to Google; the uploaded CIF is not sent."
+        )
+        gemini_enabled = os.environ.get("GEMINI_ENABLED", "").lower() == "true"
+        if not gemini_enabled:
+            st.info("Gemini is disabled. Set GEMINI_ENABLED=true and configure its credentials.")
+        if st.button(
+            "Generate Gemini explanation",
+            key="generate_gemini_summary",
+            disabled=not gemini_enabled,
+        ):
+            st.session_state.pop("gemini_summary", None)
+            try:
+                with st.spinner("Requesting Gemini explanation..."):
+                    draft = generate_gemini_summary(
+                        predictions.iloc[:, 1].tolist(), saved_summary[1],
+                    )
+                st.session_state["gemini_summary"] = (context, draft)
+            except GeminiSummaryError as error:
+                report_error("Gemini explanation failed", error)
+        saved_gemini = st.session_state.get("gemini_summary")
+        if saved_gemini is not None and saved_gemini[0] == context:
+            st.text(saved_gemini[1])
+            st.caption("AI-generated draft for scientific review.")
+    render_team_contact()
 
 
 if __name__ == "__main__":
