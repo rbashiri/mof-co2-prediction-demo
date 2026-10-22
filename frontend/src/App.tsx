@@ -19,6 +19,7 @@ interface PredictResponse {
   summary: Record<string, string>
   gemini_summary: string | null
   gemini_error: string | null
+  explanation_token: string
   predictions_csv: string
   geometry: Record<string, number>
   geometry_source: 'zeopp' | 'manual'
@@ -38,7 +39,7 @@ const GEOMETRY_FIELDS = [
 
 const PRESSURES = [0.01, 0.05, 0.1, 0.5, 2.5]
 
-function PredictionProgress({ includeGemini }: { includeGemini: boolean }) {
+function PredictionProgress() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
 
   useEffect(() => {
@@ -68,9 +69,7 @@ function PredictionProgress({ includeGemini }: { includeGemini: boolean }) {
         <div role="status">
           <strong>Examining your MOF...</strong>
           <p>
-            {includeGemini
-              ? 'Processing your structure and predictions, including the optional AI explanation. AI generation adds extra waiting time.'
-              : 'Processing your structure and predictions.'}
+            Processing your structure and predictions.
           </p>
         </div>
         <p className="elapsed-time" role="timer" aria-label="Elapsed processing time">
@@ -87,10 +86,9 @@ export default function App() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<PredictResponse | null>(null)
-  const [showAbout, setShowAbout] = useState(false)
   const [showFeatures, setShowFeatures] = useState(false)
   const [selectedPressure, setSelectedPressure] = useState<string>('0.1')
-  const [includeGemini, setIncludeGemini] = useState(false)
+  const [summaryLoading, setSummaryLoading] = useState(false)
 
   const selectFile = (nextFile: File) => {
     setFile(nextFile)
@@ -101,7 +99,7 @@ export default function App() {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
     setDragOver(false)
-    if (!loading && e.dataTransfer.files?.[0]) selectFile(e.dataTransfer.files[0])
+    if (!loading && !summaryLoading && e.dataTransfer.files?.[0]) selectFile(e.dataTransfer.files[0])
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -117,7 +115,6 @@ export default function App() {
 
     const form = new FormData()
     form.append('cif', file)
-    form.append('include_gemini', String(includeGemini))
 
     try {
       const res = await fetch('/api/predict', { method: 'POST', body: form })
@@ -128,6 +125,25 @@ export default function App() {
       setError(err instanceof Error ? err.message : 'Unknown error')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const explainResults = async () => {
+    if (!result || summaryLoading) return
+    const token = result.explanation_token
+    setSummaryLoading(true)
+    setResult((current) => current && { ...current, gemini_error: null })
+    try {
+      const response = await fetch(`/api/explanations/${encodeURIComponent(token)}`, { method: 'POST' })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.detail?.error || 'Explanation failed')
+      setResult((current) => current?.explanation_token === token
+        ? { ...current, gemini_summary: data.gemini_summary } : current)
+    } catch (err) {
+      setResult((current) => current?.explanation_token === token
+        ? { ...current, gemini_error: err instanceof Error ? err.message : 'Explanation failed' } : current)
+    } finally {
+      setSummaryLoading(false)
     }
   }
 
@@ -146,22 +162,50 @@ export default function App() {
     <div className="container">
       <header>
         <h1>MOF CO₂ Uptake Predictor</h1>
-        <p>Upload a CIF to extract all descriptors automatically and predict uptake</p>
+        <p className="header-subtitle"><strong>Upload a CIF to extract all descriptors automatically and predict uptake</strong></p>
+        <p className="header-tagline"><strong>From crystal structure to carbon-capture insights</strong></p>
       </header>
 
-      <div className="card">
-        <button className="about-toggle" onClick={() => setShowAbout((s) => !s)}>
-          {showAbout ? 'Hide' : 'Show'} about these predictions
-        </button>
-        {showAbout && (
-          <div className="about-body">
-            Zeo++ calculates geometry; MOFid/RDKit and pymatgen extract the remaining
-            descriptors. The models predict simulated hMOF uptake; predictions
-            are not experimental measurements and accuracy on other MOF families has not been
-            established.
+      <section className="card prediction-guide" aria-labelledby="prediction-guide-title">
+        <div className="prediction-guide-heading">
+          <h2 id="prediction-guide-title">About these predictions</h2>
+          <span className="model-estimates-badge">Model estimates · MVP</span>
+        </div>
+        <p className="prediction-guide-description">
+          Predict CO₂ uptake using models trained on simulated hMOF data.
+          Results are estimates, not experimental measurements.
+        </p>
+        <h3>Scientific tools behind the predictions</h3>
+        <div className="science-tools">
+          <div className="science-tool tool-geometry">
+            <svg viewBox="0 0 48 48" aria-hidden="true">
+              <path d="m24 5 16 9v20l-16 9-16-9V14Zm0 0v19m16-10-16 10L8 14m16 10v19" />
+            </svg>
+            <strong>Zeo++</strong><span>Pore geometry</span>
           </div>
-        )}
-      </div>
+          <div className="science-tool tool-linkers">
+            <svg viewBox="0 0 48 48" aria-hidden="true">
+              <path d="m24 13-12 20m12-20 12 20M12 33h24" />
+              <circle cx="24" cy="9" r="5" /><circle cx="10" cy="36" r="5" /><circle cx="38" cy="36" r="5" />
+            </svg>
+            <strong>MOFid</strong><span>Linker extraction</span>
+          </div>
+          <div className="science-tool tool-chemistry">
+            <svg viewBox="0 0 48 48" aria-hidden="true">
+              <ellipse cx="24" cy="24" rx="20" ry="8" transform="rotate(45 24 24)" />
+              <ellipse cx="24" cy="24" rx="20" ry="8" transform="rotate(-45 24 24)" />
+              <circle cx="24" cy="24" r="3" />
+            </svg>
+            <strong>RDKit</strong><span>Linker chemistry</span>
+          </div>
+          <div className="science-tool tool-materials">
+            <svg viewBox="0 0 48 48" aria-hidden="true">
+              <path d="m24 5 10 6v12l-10 6-10-6V11Zm-10 18-10 6v12l10 5 10-5V29m10-18 10 6v12l-10 6-10-6" />
+            </svg>
+            <strong>pymatgen</strong><span>Crystal descriptors</span>
+          </div>
+        </div>
+      </section>
 
       <form onSubmit={handleSubmit}>
         <div className="card">
@@ -174,32 +218,20 @@ export default function App() {
             onDragLeave={() => setDragOver(false)}
             onDrop={handleDrop}
           >
-            <input type="file" accept=".cif" onChange={handleFileChange} disabled={loading} hidden />
+            <input type="file" accept=".cif" onChange={handleFileChange} disabled={loading || summaryLoading} hidden />
             <div>Drag & drop a CIF file here, or click to browse</div>
             {file && <div className="file-name">{file.name}</div>}
           </label>
 
-          <p>
-            <label>
-              <input type="checkbox" checked={includeGemini} disabled={loading}
-                onChange={(e) => setIncludeGemini(e.target.checked)} />
-              {' '}Include a Gemini Flash draft summary
-            </label>
-          </p>
-          <p className="about-body">
-            Optional: sends predicted uptake and validated endpoint SHAP summary sections
-            to Google, not the CIF file. Requires server configuration. Leave unchecked
-            to keep processing local.
-          </p>
           <div className="actions">
-            <button type="submit" className="btn" disabled={!file || loading}>
+            <button type="submit" className="btn" disabled={!file || loading || summaryLoading}>
               {loading ? 'Extracting & predicting…' : 'Extract descriptors and predict'}
             </button>
           </div>
         </div>
       </form>
 
-      {loading && <PredictionProgress includeGemini={includeGemini} />}
+      {loading && <PredictionProgress />}
 
       {error && <div className="error">{error}</div>}
 
@@ -273,7 +305,26 @@ export default function App() {
           </div>
 
           <div className="card">
-            <h3>Scientific summary</h3>
+            <div className="explanation-action">
+              <button className="btn" aria-expanded={showFeatures} aria-controls="model-input-features"
+                onClick={() => setShowFeatures((s) => !s)}>
+                {showFeatures ? 'Hide' : 'Inspect'} the 48 model input features
+              </button>
+            </div>
+            <div id="model-input-features" hidden={!showFeatures}>
+              {showFeatures && <FeatureTable features={result.features} />}
+            </div>
+          </div>
+
+          <div className="card">
+            {!result.gemini_summary && (
+              <div className="explanation-action">
+                <button className="btn" onClick={explainResults} disabled={summaryLoading}>
+                  {summaryLoading ? 'Preparing your explanation...' : 'Click here to learn more about the results'}
+                </button>
+              </div>
+            )}
+            {summaryLoading && <p role="status">Your predictions are ready. Generating the explanation separately...</p>}
             {result.gemini_summary && (
               <div className="summary-section">
                 <p>{result.gemini_summary}</p>
@@ -301,20 +352,6 @@ export default function App() {
                 {' '}Predictions and SHAP are unchanged.
               </div>
             )}
-            {!result.gemini_summary && !result.gemini_error && (
-              <p className="about-body">
-                No AI summary requested. To generate one, select “Include a Gemini Flash
-                draft summary” and submit the prediction again. Gemini must be configured
-                on the server.
-              </p>
-            )}
-          </div>
-
-          <div className="card">
-            <button className="about-toggle" onClick={() => setShowFeatures((s) => !s)}>
-              {showFeatures ? 'Hide' : 'Inspect'} the 48 model input features
-            </button>
-            {showFeatures && <FeatureTable features={result.features} />}
           </div>
         </>
       )}

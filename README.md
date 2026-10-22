@@ -92,6 +92,16 @@ and the existing CSV download. `POST /api/predict` accepts a multipart `cif`
 alone; existing clients may still supply all four manual geometry values.
 Partial manual geometry is rejected.
 
+Predictions do not wait for AI generation. After results appear, the bottom
+**Click here to learn more about the results** button requests an optional
+Gemini explanation separately, without repeating CIF extraction, predictions
+or SHAP. The former upload-form Gemini checkbox is removed. Prediction results
+remain available if explanation generation fails. Gemini must be configured
+on the server; the optional explanation sends prediction and SHAP information
+to Google, not the CIF file.
+See the [web guide](Readme/readme_webinterface.md) for the explanation endpoint
+and the current single-worker, 30-minute result-context lifetime.
+
 Zeo++ runs in high-accuracy mode with the experimental
 `experimental-sample-comparison-v1` profile:
 

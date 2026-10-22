@@ -5,9 +5,12 @@ import io
 import logging
 import math
 import os
+import secrets
 import subprocess
 import sys
 import tempfile
+import time
+from collections import OrderedDict
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
@@ -46,6 +49,21 @@ GEOMETRY_LABELS = {
 }
 
 _state: dict[str, Any] = {}
+EXPLANATION_TTL_SECONDS = 1800
+EXPLANATION_CACHE_SIZE = 128
+
+
+def _remember_explanation(uptakes: list[float], summary: dict[str, str]) -> str:
+    cache = _state.setdefault("explanation_requests", OrderedDict())
+    now = time.monotonic()
+    for token, (created, _, _) in list(cache.items()):
+        if now - created >= EXPLANATION_TTL_SECONDS:
+            del cache[token]
+    while len(cache) >= EXPLANATION_CACHE_SIZE:
+        cache.popitem(last=False)
+    token = secrets.token_urlsafe(32)
+    cache[token] = (now, uptakes, summary)
+    return token
 
 
 def load_app_settings() -> dict:
@@ -273,6 +291,7 @@ async def predict(
         csv_base64 = base64.b64encode(csv_buffer.getvalue().encode("utf-8")).decode("ascii")
 
         features_row = features.iloc[0].to_dict()
+        explanation_token = _remember_explanation(predictions.iloc[:, 1].tolist(), summary)
 
         return JSONResponse({
             "pressures": [
@@ -299,11 +318,31 @@ async def predict(
             "summary": summary,
             "gemini_summary": gemini_summary,
             "gemini_error": gemini_error,
+            "explanation_token": explanation_token,
             "predictions_csv": csv_base64,
         })
     except (OSError, ValueError, subprocess.SubprocessError) as exc:
         LOGGER.exception("Prediction failed")
         raise HTTPException(status_code=400, detail={"error": f"CIF processing or prediction failed: {exc}"}) from exc
+
+
+@app.post("/api/explanations/{token}")
+async def explain_prediction(token: str) -> dict[str, str]:
+    cache = _state.get("explanation_requests", {})
+    context = cache.get(token)
+    if context is None or time.monotonic() - context[0] >= EXPLANATION_TTL_SECONDS:
+        cache.pop(token, None)
+        raise HTTPException(
+            status_code=410,
+            detail={"error": "These results have expired. Run the prediction again to request an explanation."},
+        )
+    _, uptakes, summary = context
+    try:
+        draft = await run_in_threadpool(generate_gemini_summary, uptakes, summary)
+    except GeminiSummaryError as exc:
+        LOGGER.warning("Requested Gemini explanation failed: %s", exc)
+        raise HTTPException(status_code=503, detail={"error": str(exc)}) from exc
+    return {"gemini_summary": draft}
 
 
 # Serve the React frontend if it has been built.

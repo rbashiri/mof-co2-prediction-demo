@@ -37,6 +37,10 @@ replace XGBoost.
 
 ### React first-version additions
 
+An always-visible **About these predictions** card above the upload form
+introduces the MVP and model estimates. Four colored tool tiles show the roles
+of Zeo++, MOFid, RDKit and pymatgen. No click is needed to read the explanation.
+
 The React interface keeps its existing line chart and adds a five-pressure
 comparison table. Highest and lowest labels use the actual predictions,
 including ties, rather than assuming that uptake increases with pressure.
@@ -47,8 +51,12 @@ names, signed bars around a zero line, and numerical values into distinct
 columns. Both charts scroll horizontally on narrow screens to keep labels
 readable; predictions and SHAP values are not changed.
 
-The optional **Include a Gemini Flash draft summary** checkbox sends validated
-uptake values and endpoint SHAP summary sections to Google only when selected.
+Predictions appear before any optional AI generation. The **Click here to learn
+more about the results** button at the end of the results requests a separate
+Gemini explanation of the existing predictions. There is no upload-form AI
+checkbox and no need to reupload or repeat extraction, predictions or SHAP.
+The button sends validated uptake values and endpoint SHAP summary sections
+to Google only when clicked.
 No CIF file, filename, full dataset, or model file is included. Predictions,
 SHAP and CSV downloads remain available if Gemini fails; the UI displays the
 failure explicitly. Rule-based sections are retained internally as validated
@@ -57,9 +65,18 @@ in React. The old Streamlit app is unchanged.
 
 While a prediction request is pending, a decorative molecular animation displays
 **Examining your MOF...** and elapsed seconds, not an estimated countdown or
-unverified processing stages. When Gemini is selected, the message notes its
-extra waiting time. The indicator stops on success or failure, resets for each
+unverified processing stages. The separate explanation button has its own
+loading state while prediction results remain visible. The indicator stops on success or failure, resets for each
 request, and respects reduced-motion preferences.
+
+The prediction API returns an opaque `explanation_token`. Posting to
+`/api/explanations/{token}` generates the explanation from server-retained
+validated facts, not client-supplied prompt text. The current single-worker
+MVP retains at most 128 contexts for 30 minutes in process memory, without
+the CIF or filename. Expired/evicted contexts and server restarts require a
+new prediction; HTTP 410 explains this explicitly. Multi-worker deployment
+needs a shared context store or sticky routing. The legacy `include_gemini`
+API parameter remains available for existing clients but is not sent by React.
 
 Gemini is disabled by default. After your team approves external data sharing,
 configure these server-side environment variables (for example, in Render):

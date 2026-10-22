@@ -295,3 +295,54 @@ def test_real_cif_only_prediction(client, filename):
         assert explanation["baseline"] + sum(explanation["contributions"]) == pytest.approx(
             point["uptake"], abs=1e-4,
         )
+
+
+@pytest.mark.parametrize("fails", [False, True])
+def test_deferred_explanation_does_not_repeat_prediction(client, monkeypatch, fails):
+    from src.gemini_summary import GeminiSummaryError
+
+    builds = []
+    calls = []
+
+    def build(path, geometry, *, feature_names, **kwargs):
+        builds.append(path)
+        return pd.DataFrame([[0.0] * len(feature_names)], columns=feature_names)
+
+    def generate(uptakes, sections):
+        calls.append((uptakes, sections))
+        if fails:
+            raise GeminiSummaryError("Provider unavailable")
+        return "Explanation of existing results"
+
+    monkeypatch.setattr("src.api.build_phase3_features", build)
+    monkeypatch.setattr("src.api.generate_gemini_summary", generate)
+    response = client.post("/api/predict", data=geometry_form(), files={"cif": cif_file()})
+    assert response.status_code == 200
+    result = response.json()
+    assert calls == []
+    assert result["gemini_summary"] is None
+    explained = client.post(f"/api/explanations/{result['explanation_token']}")
+    assert len(builds) == 1
+    assert calls == [([point["uptake"] for point in result["pressures"]], result["summary"])]
+    if fails:
+        assert explained.status_code == 503
+        assert explained.json()["detail"]["error"] == "Provider unavailable"
+    else:
+        assert explained.status_code == 200
+        assert explained.json()["gemini_summary"] == "Explanation of existing results"
+
+
+def test_explanation_expiry_and_cache_bound(client, monkeypatch):
+    from src.api import EXPLANATION_CACHE_SIZE, EXPLANATION_TTL_SECONDS, _remember_explanation, _state
+
+    monkeypatch.setattr("src.api.time.monotonic", lambda: 100.0)
+    token = _remember_explanation([1.0] * 5, {"summary": "validated"})
+    assert client.post("/api/explanations/unknown").status_code == 410
+    monkeypatch.setattr("src.api.time.monotonic", lambda: 100.0 + EXPLANATION_TTL_SECONDS)
+    assert client.post(f"/api/explanations/{token}").status_code == 410
+    assert token not in _state["explanation_requests"]
+    first = _remember_explanation([1.0] * 5, {})
+    for _ in range(EXPLANATION_CACHE_SIZE):
+        _remember_explanation([1.0] * 5, {})
+    assert len(_state["explanation_requests"]) == EXPLANATION_CACHE_SIZE
+    assert client.post(f"/api/explanations/{first}").status_code == 410
