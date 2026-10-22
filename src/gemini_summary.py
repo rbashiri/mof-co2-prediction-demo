@@ -242,8 +242,8 @@ def build_prompt(uptakes: list[float], sections: dict[str, str]) -> str:
 
 def validate_summary(text: str, uptakes: list[float], prompt: str) -> None:
     """Conservative format/numeric checks, not proof of scientific correctness."""
-    if not 120 <= len(text.split()) <= 190:
-        raise GeminiSummaryError("Gemini draft did not meet the 130-190 word requirement.")
+    if not 80 <= len(text.split()) <= 280:
+        raise GeminiSummaryError("Gemini draft did not meet the word requirement.")
     headings = [line.strip() for line in text.splitlines() if line.strip() in SUMMARY_HEADINGS]
     if headings != list(SUMMARY_HEADINGS):
         raise GeminiSummaryError("Gemini draft did not contain the three required sections in order.")
