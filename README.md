@@ -1,4 +1,4 @@
-# MOF CO2 Uptake Prediction
+# PRISM — Pore Regression & Interpretability for Simulated MOFs
 
 The project documentation is organized into two guides:
 
@@ -9,8 +9,10 @@ The project documentation is organized into two guides:
    inputs, model integration, predictions, SHAP, optional LLM summaries,
    testing, and deployment.
 
-The React/FastAPI app uses Phase 3 Model B with geometry extracted by Zeo++
-and remaining descriptors extracted by MOFid/RDKit and pymatgen from one CIF.
+**PRISM** (React + FastAPI) uses Phase 3 Model B with an interactive **3Dmol.js
+crystal structure viewer**, pore geometry extracted automatically by **Zeo++**,
+and remaining chemical/crystallographic descriptors extracted by
+**MOFid/RDKit** and **pymatgen** from a single uploaded CIF.
 See the web guide for local MOFid setup and usage.
 
 ## Hackathon MVP: scope, tests and next steps
