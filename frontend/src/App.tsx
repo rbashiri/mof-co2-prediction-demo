@@ -179,20 +179,22 @@ export default function App() {
 
       <div className="container">
         <header className="hero-header">
-          <div className="hero-badge-row">
+          <h1>PRISM</h1>
+          <p className="header-expansion">Pore Regression &amp; Interpretability for Simulated MOFs</p>
+          <p className="header-subtitle">
+            <strong>Upload a CIF to extract all descriptors automatically and predict CO₂ uptake</strong>
+          </p>
+          <p className="header-tagline">
+            <strong>From crystal structure to carbon-capture insights</strong>
+          </p>
+          <div className="hero-badge-row hero-badge-row-bottom">
             <span className="hero-pill">
               <span className="hero-pill-dot" aria-hidden="true" />
               PHASE 3 MODEL B · 48 DESCRIPTORS
             </span>
             <span className="hero-pill hero-pill-subtle">ZEO++ · MOFID · RDKIT · PYMATGEN</span>
+            <span className="model-estimates-badge">Model estimates · MVP</span>
           </div>
-          <h1>MOF CO₂ Uptake Predictor</h1>
-          <p className="header-subtitle">
-            <strong>Upload a CIF to extract all descriptors automatically and predict uptake</strong>
-          </p>
-          <p className="header-tagline">
-            <strong>From crystal structure to carbon-capture insights</strong>
-          </p>
         </header>
 
         {/* Fixed 2-Column Top Workspace: Upload on Left, 3D Visualizer Always on Right */}
@@ -486,7 +488,6 @@ export default function App() {
                 <h2 id="prediction-guide-title">About these predictions & scientific tools</h2>
               </div>
               <div className="guide-trigger-right">
-                <span className="model-estimates-badge">Model estimates · MVP</span>
                 <span className="guide-chevron">
                   {showPipelineInfo ? 'Hide details ▲' : 'Click to view packages & model info ▼'}
                 </span>

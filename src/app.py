@@ -67,7 +67,10 @@ TEAM_MEMBERS = (
         "organization": "Syngenta Group",
         "secondary": "Indian Institute of Technology Madras",
         "location": "Pune, India",
-        "links": (),
+        "links": (
+            ("GitHub", "https://github.com/Ripu0902"),
+            ("LinkedIn", "https://www.linkedin.com/in/ripu0902/"),
+        ),
     },
     {
         "image": "team-umer.webp",
@@ -77,7 +80,9 @@ TEAM_MEMBERS = (
         "organization": "Bahauddin Zakariya University",
         "secondary": "Undergraduate Student · Volunteer Researcher",
         "location": "Multan, Pakistan",
-        "links": (),
+        "links": (
+            ("LinkedIn", "https://www.linkedin.com/in/umerchem/"),
+        ),
     },
 )
 
@@ -206,7 +211,7 @@ def render_team_contact() -> None:
             "MOF CO₂ Predictor? We'd love to hear from you."
         )
         st.link_button("Email the team", "mailto:robabeh.bashiri@gmail.com")
-        st.link_button("Project GitHub", "https://github.com/rbashiri")
+        st.link_button("Project GitHub", "https://github.com/rbashiri/mof-co2-prediction-demo/tree/osi/app")
 
 
 def resolve_sbu_path(configured: str | None) -> str | None:
@@ -221,8 +226,11 @@ def resolve_sbu_path(configured: str | None) -> str | None:
 
 
 def main() -> None:
-    st.set_page_config(page_title="MOF CO2 Uptake Predictor", layout="wide")
-    st.title("Welcome to the MOF CO₂ Uptake Predictor")
+    st.set_page_config(
+        page_title="PRISM — Pore Regression & Interpretability for Simulated MOFs",
+        layout="wide",
+    )
+    st.title("PRISM — Pore Regression & Interpretability for Simulated MOFs")
     st.write(
         "Upload one CIF. Zeo++ calculates its pore geometry, while "
         "MOFid/RDKit and pymatgen derive the remaining model descriptors."

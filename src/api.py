@@ -140,7 +140,10 @@ async def lifespan(app: FastAPI):
     _state.clear()
 
 
-app = FastAPI(title="MOF CO2 Uptake Predictor", lifespan=lifespan)
+app = FastAPI(
+    title="PRISM — Pore Regression & Interpretability for Simulated MOFs",
+    lifespan=lifespan,
+)
 
 app.add_middleware(
     CORSMiddleware,

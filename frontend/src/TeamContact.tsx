@@ -39,6 +39,8 @@ const members: Member[] = [
     organization: 'Syngenta Group',
     secondary: 'Indian Institute of Technology Madras',
     location: 'Pune, India',
+    github: 'https://github.com/Ripu0902',
+    linkedin: 'https://www.linkedin.com/in/ripu0902/',
   },
   {
     initials: 'UF',
@@ -49,6 +51,7 @@ const members: Member[] = [
     organization: 'Bahauddin Zakariya University',
     secondary: 'Undergraduate Student · Volunteer Researcher',
     location: 'Multan, Pakistan',
+    linkedin: 'https://www.linkedin.com/in/umerchem/',
   },
 ]
 
@@ -126,8 +129,8 @@ export default function TeamContact() {
           <span className="tc-eyebrow">LET&apos;S COLLABORATE</span>
           <h2 id="tc-contact-title">Contact Us</h2>
           <p>
-            Have a research question, collaboration idea, or feedback about the MOF CO₂ Predictor? We&apos;d love to
-            hear from you.
+            Have a research question, collaboration idea, or feedback about PRISM (Pore Regression &amp; Interpretability
+            for Simulated MOFs)? We&apos;d love to hear from you.
           </p>
           <form onSubmit={handleSubmit}>
             <label htmlFor="tc-name">Your name</label>
@@ -167,7 +170,11 @@ export default function TeamContact() {
           </form>
           <div className="tc-links">
             <a href={`mailto:${contactEmail}`}>✉ {contactEmail}</a>
-            <a href="https://github.com/rbashiri" target="_blank" rel="noopener noreferrer">
+            <a
+              href="https://github.com/rbashiri/mof-co2-prediction-demo/tree/osi/app"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               ⌘ GitHub Repository
             </a>
           </div>
