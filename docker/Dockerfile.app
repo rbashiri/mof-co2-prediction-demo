@@ -18,13 +18,13 @@ FROM ${BASE_IMAGE}
 
 WORKDIR /app
 
+COPY requirements.txt /app/requirements.txt
+RUN python -m pip install --no-cache-dir -r /app/requirements.txt
+
 COPY scripts/install_zeopp.py /app/scripts/install_zeopp.py
 RUN python /app/scripts/install_zeopp.py --destination /opt/zeopp
 ENV ZEO_NETWORK_PATH=/opt/zeopp/network \
     GEMINI_MODEL=gemini-3.5-flash
-
-COPY requirements.txt /app/requirements.txt
-RUN python -m pip install --no-cache-dir -r /app/requirements.txt
 
 COPY src/ /app/src/
 COPY configs/config.yaml /app/configs/config.yaml
