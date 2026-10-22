@@ -143,6 +143,9 @@ def build_prompt(uptakes: list[float], sections: dict[str, str]) -> str:
         "Prefer qualitative descriptions to numbers already shown in the table. "
         "If a number is necessary, copy it exactly from the supplied facts, "
         "preserving its pressure, descriptor, direction and units. "
+        "Never use digits for counts, list items, or hypothesis labels "
+        "(write words such as one, two, five, first, or second, never 1, 2, or 5), "
+        "and never round any number. "
         "Use feature_labels to translate ONLY the feature identifiers actually "
         "named in the endpoint SHAP sections. The glossary is vocabulary, not "
         "evidence that every listed feature contributed or a chemical group is present. "
@@ -184,7 +187,8 @@ def validate_summary(text: str, uptakes: list[float], prompt: str) -> None:
         raise GeminiSummaryError("Gemini draft repeated prediction values instead of interpreting them.")
     facts = prompt.split("instructions:\n", 1)[1]
     supplied = {Decimal(number) for number in NUMBER.findall(facts)}
-    if {Decimal(number) for number in NUMBER.findall(text)} - supplied:
+    cleaned_text = re.sub(r"\b(?:hypothesis|point|step|item)\s+[123]\b", "", text, flags=re.IGNORECASE)
+    if {Decimal(number) for number in NUMBER.findall(cleaned_text)} - supplied:
         raise GeminiSummaryError("Gemini draft contained an unverified numeric value.")
     if re.search(r"\bfeature_[a-z0-9]+\b", text, re.IGNORECASE):
         raise GeminiSummaryError("Gemini draft used placeholder feature names.")
