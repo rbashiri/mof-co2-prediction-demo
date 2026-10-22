@@ -26,14 +26,22 @@ SECTIONS = {
     "Limitations": "Simulated data; SHAP attribution is not chemical causation.",
 }
 TEXT = (
-    "Predicted uptake is 0.01 bar: 0.02 mol/kg; 0.05 bar: 0.07 mol/kg; "
-    "0.1 bar: 0.22 mol/kg; 0.5 bar: 0.88 mol/kg; 2.5 bar: 4.33 mol/kg. "
-    "The lowest prediction is at 0.01 bar and the highest is at 2.5 bar. "
-    "At 0.01 bar, surface area gives the strongest upward push to this "
-    "structure's predicted uptake, while the ring count in extracted linkers "
-    "gives the strongest downward push. At 2.5 bar, the leading contributors "
-    "switch: the linker ring count gives the strongest upward push and surface "
-    "area gives the strongest downward push."
+    "ADSORPTION BEHAVIOR\n"
+    "Predicted uptake increases consistently across the evaluated pressure range. "
+    "The predictions show no decrease between adjacent modeled pressures. "
+    "This describes the model outputs, not measured adsorption behavior.\n\n"
+    "STRUCTURE-PROPERTY INSIGHTS\n"
+    "At the lowest pressure, surface area gives the strongest upward push relative "
+    "to the corresponding model baseline, while the ring count in extracted linkers "
+    "gives the strongest downward push. At the highest pressure, these leading "
+    "contributors switch directions. These SHAP attributions explain the model "
+    "prediction, not established chemical mechanisms. Their raw magnitudes should "
+    "not be compared as relative importance across separate pressure models.\n\n"
+    "RESEARCH IMPLICATIONS\n"
+    "A hypothesis to test is whether the predicted pressure trend is reproduced "
+    "by independent adsorption measurements. Such measurements could investigate "
+    "agreement with the model without assuming that the identified descriptors "
+    "cause adsorption or establish a performance advantage."
 )
 
 
@@ -125,11 +133,14 @@ def test_invalid_provider_responses(configured, monkeypatch, response):
 
 @pytest.mark.parametrize("text", [
     "too short",
-    TEXT.replace("2.5 bar: 4.33 mol/kg", "2.5 bar: 9.99 mol/kg"),
+    TEXT + " 2.5 bar: 9.99 mol/kg.",
     TEXT + " An invented value is 123.456.",
     TEXT.replace("surface area", "feature_a"),
     TEXT.replace("surface area", "feature_0"),
-    TEXT + " 2.5 bar: 4.33 mol/kg.",
+    TEXT + " 2.5 bar: 4.33 mol/kg; 2.5 bar: 4.33 mol/kg.",
+    TEXT.replace("RESEARCH IMPLICATIONS", "CONCLUSIONS"),
+    TEXT.replace("ADSORPTION BEHAVIOR", "RESEARCH IMPLICATIONS"),
+    TEXT + " extra" * 180,
 ])
 def test_invalid_drafts(text):
     with pytest.raises(GeminiSummaryError):
@@ -177,11 +188,30 @@ def test_prompt_extrema_include_all_ties():
     assert facts["lowest_uptake_pressures_bar"] == [0.01, 0.5]
 
 
-def test_plain_language_draft_needs_no_technical_boilerplate():
-    assert "SHAP" not in TEXT
-    assert "baseline" not in TEXT
-    assert 80 <= len(TEXT.split()) <= 150
+def test_interpretation_needs_no_repeated_prediction_table():
+    assert "mol/kg" not in TEXT
+    assert 120 <= len(TEXT.split()) <= 180
     validate_summary(TEXT, UPTAKES, build_prompt(UPTAKES, SECTIONS))
+
+
+def test_optional_numeric_pair_must_match_its_pressure():
+    prompt = build_prompt(UPTAKES, SECTIONS)
+    validate_summary(TEXT + " 2.5 bar: 4.33 mol/kg.", UPTAKES, prompt)
+    with pytest.raises(GeminiSummaryError, match="pressure/uptake pair"):
+        validate_summary(TEXT + " 0.01 bar: 4.33 mol/kg.", UPTAKES, prompt)
+
+
+def test_complete_table_is_rejected():
+    pairs = "; ".join(f"{p:g} bar: {u:.6g} mol/kg" for p, u in zip(
+        [0.01, 0.05, 0.1, 0.5, 2.5], UPTAKES, strict=True,
+    ))
+    with pytest.raises(GeminiSummaryError, match="instead of interpreting"):
+        validate_summary(TEXT + " " + pairs, UPTAKES, build_prompt(UPTAKES, SECTIONS))
+
+
+def test_instruction_numbers_are_not_evidence():
+    with pytest.raises(GeminiSummaryError, match="unverified numeric"):
+        validate_summary(TEXT + " A value is 180.", UPTAKES, build_prompt(UPTAKES, SECTIONS))
 
 
 def test_prompt_labels_cover_frozen_feature_schema():
@@ -205,6 +235,12 @@ def test_prompt_separates_vocabulary_from_facts():
     assert facts["feature_labels"]["void_fraction"] == "void fraction"
     assert facts["feature_labels"]["pld"] == "pore limiting diameter"
     assert "retaining exact scientific" in prompt
+    assert "Do not infer selectivity, stability, or recyclability" in prompt
+    assert "hypothesis to test, not a finding" in prompt
+    assert facts["predictions"] == [
+        {"pressure_bar": p, "uptake_mol_kg": u}
+        for p, u in zip([0.01, 0.05, 0.1, 0.5, 2.5], UPTAKES, strict=True)
+    ]
 
 
 def test_prompt_contributors_follow_actual_shap_values():

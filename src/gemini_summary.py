@@ -60,6 +60,12 @@ FEATURE_LABELS = {
     **{f"lattice_{angle}": f"unit-cell angle {angle}" for angle in ("alpha", "beta", "gamma")},
 }
 
+SUMMARY_HEADINGS = (
+    "ADSORPTION BEHAVIOR",
+    "STRUCTURE-PROPERTY INSIGHTS",
+    "RESEARCH IMPLICATIONS",
+)
+
 
 class GeminiSummaryError(ValueError):
     """A public-safe failure that must not interrupt prediction results."""
@@ -98,11 +104,11 @@ def describe_http_error(error: HTTPError) -> str:
 
 def build_prompt(uptakes: list[float], sections: dict[str, str]) -> str:
     """Accept only outputs already validated by generate_pressure_comparison."""
-    pairs = "; ".join(
-        f"{pressure:g} bar: {value:.6g} mol/kg"
-        for pressure, value in zip(PRESSURES, uptakes, strict=True)
-    )
     facts = {
+        "predictions": [
+            {"pressure_bar": pressure, "uptake_mol_kg": float(f"{value:.6g}")}
+            for pressure, value in zip(PRESSURES, uptakes, strict=True)
+        ],
         "scientific_sections": sections,
         "feature_labels": FEATURE_LABELS,
         "lowest_uptake_pressures_bar": [
@@ -113,14 +119,30 @@ def build_prompt(uptakes: list[float], sections: dict[str, str]) -> str:
         ],
     }
     return (
-        "Write one plain-text results paragraph of 80-150 words for a reader "
-        "who does not know SHAP. Use short sentences, retaining exact scientific "
+        "You are a scientific interpretation assistant for MOFs and CO2 adsorption. "
+        "Interpret the supplied predictions and validated SHAP evidence for a materials "
+        "researcher using accessible, scientifically precise language. "
+        "Write 120-180 words total, including these three plain-text headings, "
+        "each exactly once on its own line and in this order: "
+        + ", ".join(SUMMARY_HEADINGS) + ". Do not use Markdown or numbered headings. "
+        "Under ADSORPTION BEHAVIOR, explain the pressure-dependent uptake trend. "
+        "Identify unusual trends only when supported by the data. Do not repeat "
+        "the complete prediction table or list all five numerical predictions. "
+        "Under STRUCTURE-PROPERTY INSIGHTS, explain the leading endpoint SHAP "
+        "descriptors as contributions above or below the corresponding pressure "
+        "model's baseline, not established structure-property mechanisms. "
+        "Under RESEARCH IMPLICATIONS, suggest one or two follow-up investigations "
+        "motivated by the supplied evidence. Explicitly label each suggestion as "
+        "a hypothesis to test, not a finding. Do not assert an outcome or a "
+        "performance advantage without comparison data and validation. "
+        "Use short sentences, retaining exact scientific "
         "descriptor terms such as void fraction and pore limiting diameter. "
         "Explain the direction of their contributions without replacing these "
         "terms with vague descriptions such as empty space. "
-        "Use ONLY the supplied facts. Include these pairs exactly once, verbatim "
-        f"and in order: {pairs}. "
-        "Identify the highest and lowest predictions, including ties. "
+        "Use ONLY the supplied facts for claims about this material. "
+        "Prefer qualitative descriptions to numbers already shown in the table. "
+        "If a number is necessary, copy it exactly from the supplied facts, "
+        "preserving its pressure, descriptor, direction and units. "
         "Use feature_labels to translate ONLY the feature identifiers actually "
         "named in the endpoint SHAP sections. The glossary is vocabulary, not "
         "evidence that every listed feature contributed or a chemical group is present. "
@@ -137,6 +159,7 @@ def build_prompt(uptakes: list[float], sections: dict[str, str]) -> str:
         "contribution across separate pressure models proves increased importance. "
         "Do not invent chemistry, mechanisms, metal/linker identities, citations, "
         "numbers, or confidence intervals. Do not recalculate predictions. "
+        "Do not infer selectivity, stability, or recyclability. "
         "Keep technical baseline discussion and general limitations out of this "
         "paragraph: the app displays a separate fixed limitations note. "
         "Still report input-specific warnings, such as negative uptake or a "
@@ -148,12 +171,19 @@ def build_prompt(uptakes: list[float], sections: dict[str, str]) -> str:
 
 def validate_summary(text: str, uptakes: list[float], prompt: str) -> None:
     """Conservative format/numeric checks, not proof of scientific correctness."""
-    if not 80 <= len(text.split()) <= 150:
-        raise GeminiSummaryError("Gemini draft did not meet the 80-150 word requirement.")
-    expected = [(f"{p:g}", f"{u:.6g}") for p, u in zip(PRESSURES, uptakes)]
-    if PAIR.findall(text) != expected:
-        raise GeminiSummaryError("Gemini draft changed or omitted prediction values.")
-    supplied = {Decimal(number) for number in NUMBER.findall(prompt)}
+    if not 120 <= len(text.split()) <= 180:
+        raise GeminiSummaryError("Gemini draft did not meet the 120-180 word requirement.")
+    headings = [line.strip() for line in text.splitlines() if line.strip() in SUMMARY_HEADINGS]
+    if headings != list(SUMMARY_HEADINGS):
+        raise GeminiSummaryError("Gemini draft did not contain the three required sections in order.")
+    pairs = PAIR.findall(text)
+    expected = {(f"{p:g}", f"{u:.6g}") for p, u in zip(PRESSURES, uptakes, strict=True)}
+    if any(pair not in expected for pair in pairs):
+        raise GeminiSummaryError("Gemini draft changed a pressure/uptake pair.")
+    if len(pairs) >= len(PRESSURES) or len(set(pairs)) != len(pairs):
+        raise GeminiSummaryError("Gemini draft repeated prediction values instead of interpreting them.")
+    facts = prompt.split("instructions:\n", 1)[1]
+    supplied = {Decimal(number) for number in NUMBER.findall(facts)}
     if {Decimal(number) for number in NUMBER.findall(text)} - supplied:
         raise GeminiSummaryError("Gemini draft contained an unverified numeric value.")
     if re.search(r"\bfeature_[a-z0-9]+\b", text, re.IGNORECASE):
