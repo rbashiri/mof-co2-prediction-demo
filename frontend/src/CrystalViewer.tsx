@@ -37,7 +37,7 @@ function parseCifMetadata(cifText: string): CifMeta {
   }
 }
 
-export default function CrystalViewer({ file }: { file: File }) {
+export default function CrystalViewer({ file }: { file: File | null }) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const viewerRef = useRef<$3Dmol.GLViewer | null>(null)
 
@@ -50,6 +50,12 @@ export default function CrystalViewer({ file }: { file: File }) {
   const [viewerError, setViewerError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (!file) {
+      setCifText('')
+      setAtomCount(null)
+      setViewerError(null)
+      return
+    }
     let active = true
     setViewerError(null)
     file
@@ -61,7 +67,8 @@ export default function CrystalViewer({ file }: { file: File }) {
           setCifText('')
           return
         }
-        setCifText(text)
+        // Normalize tabs to spaces because 3Dmol's CIF loop parser splits on ' ' only.
+        setCifText(text.replace(/\t+/g, ' '))
       })
       .catch(() => {
         if (active) setViewerError('Unable to read CIF file for 3D preview.')
@@ -75,7 +82,10 @@ export default function CrystalViewer({ file }: { file: File }) {
 
   useEffect(() => {
     const el = containerRef.current
-    if (!el || !cifText) return
+    if (!el || !cifText) {
+      if (el) el.innerHTML = ''
+      return
+    }
 
     try {
       el.innerHTML = ''
@@ -89,6 +99,7 @@ export default function CrystalViewer({ file }: { file: File }) {
         doAssembly: true,
         duplicateAssemblyAtoms: true,
         normalizeAssembly: true,
+        assignBonds: true,
       })
 
       if (supercell) {
@@ -96,7 +107,13 @@ export default function CrystalViewer({ file }: { file: File }) {
       }
 
       if (styleMode === 'ballstick') {
-        viewer.setStyle({}, { stick: { radius: 0.14, colorscheme: 'Jmol' }, sphere: { scale: 0.28, colorscheme: 'Jmol' } })
+        viewer.setStyle(
+          {},
+          {
+            stick: { radius: 0.14, colorscheme: 'Jmol' },
+            sphere: { scale: 0.28, colorscheme: 'Jmol' },
+          }
+        )
       } else if (styleMode === 'stick') {
         viewer.setStyle({}, { stick: { radius: 0.18, colorscheme: 'Jmol' } })
       } else if (styleMode === 'sphere') {
@@ -161,13 +178,15 @@ export default function CrystalViewer({ file }: { file: File }) {
       <div className="card-header-inline crystal-header">
         <div>
           <span className="section-eyebrow">INTERACTIVE CRYSTALLOGRAPHY · 3DMOL WEBGL</span>
-          <h3>3D Crystal Structure — {file.name}</h3>
+          <h3>{file ? `3D Crystal Structure — ${file.name}` : '3D Crystal Structure'}</h3>
         </div>
         <div className="crystal-badges">
-          {atomCount !== null && atomCount > 0 && (
+          {file && atomCount !== null && atomCount > 0 ? (
             <span className="source-badge">{atomCount.toLocaleString()} rendered sites</span>
+          ) : (
+            <span className="source-badge">Awaiting CIF</span>
           )}
-          {meta.spaceGroup && <span className="model-estimates-badge">SG: {meta.spaceGroup}</span>}
+          {file && meta.spaceGroup && <span className="model-estimates-badge">SG: {meta.spaceGroup}</span>}
         </div>
       </div>
 
@@ -184,6 +203,7 @@ export default function CrystalViewer({ file }: { file: File }) {
             <button
               key={key}
               type="button"
+              disabled={!file}
               className={`pressure-pill ${styleMode === key ? 'active' : ''}`}
               onClick={() => setStyleMode(key)}
             >
@@ -195,6 +215,7 @@ export default function CrystalViewer({ file }: { file: File }) {
         <div className="crystal-toggle-group">
           <button
             type="button"
+            disabled={!file}
             className={`crystal-chip-btn ${showUnitCell ? 'active' : ''}`}
             onClick={() => setShowUnitCell((v) => !v)}
           >
@@ -202,6 +223,7 @@ export default function CrystalViewer({ file }: { file: File }) {
           </button>
           <button
             type="button"
+            disabled={!file}
             className={`crystal-chip-btn ${supercell ? 'active' : ''}`}
             onClick={() => setSupercell((v) => !v)}
           >
@@ -209,12 +231,13 @@ export default function CrystalViewer({ file }: { file: File }) {
           </button>
           <button
             type="button"
+            disabled={!file}
             className={`crystal-chip-btn ${spinning ? 'active' : ''}`}
             onClick={() => setSpinning((v) => !v)}
           >
             {spinning ? '⟳ Auto-Rotate: ON' : '⟳ Auto-Rotate: OFF'}
           </button>
-          <button type="button" className="crystal-chip-btn" onClick={resetCamera}>
+          <button type="button" disabled={!file} className="crystal-chip-btn" onClick={resetCamera}>
             ⌖ Reset View
           </button>
         </div>
@@ -225,8 +248,25 @@ export default function CrystalViewer({ file }: { file: File }) {
           ref={containerRef}
           className="crystal-stage"
           role="img"
-          aria-label={`3D molecular visualization of ${file.name}`}
+          aria-label={file ? `3D molecular visualization of ${file.name}` : 'Empty 3D crystal structure viewport'}
         />
+        {!file && (
+          <div className="crystal-empty-state">
+            <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+              <path d="M32 6 54 19v26L32 58 10 45V19L32 6Z" />
+              <path d="M32 6v26m22-13L32 32 10 19m22 13v26" opacity="0.55" />
+              <circle cx="32" cy="32" r="4.5" fill="currentColor" />
+              <circle cx="32" cy="6" r="3" fill="currentColor" />
+              <circle cx="54" cy="19" r="3" fill="currentColor" />
+              <circle cx="54" cy="45" r="3" fill="currentColor" />
+              <circle cx="32" cy="58" r="3" fill="currentColor" />
+              <circle cx="10" cy="45" r="3" fill="currentColor" />
+              <circle cx="10" cy="19" r="3" fill="currentColor" />
+            </svg>
+            <strong>3D Unit-Cell Viewport Ready</strong>
+            <span>Upload a .cif file on the left to inspect its 3D atomic framework, pore channels, and unit cell.</span>
+          </div>
+        )}
         {viewerError && (
           <div className="crystal-overlay-msg" role="alert">
             {viewerError}
@@ -244,34 +284,32 @@ export default function CrystalViewer({ file }: { file: File }) {
         </div>
       </div>
 
-      {(meta.a || meta.b || meta.c) && (
-        <div className="crystal-cell-strip">
-          <div className="cell-param">
-            <span>a</span>
-            <strong>{meta.a ?? '—'} Å</strong>
-          </div>
-          <div className="cell-param">
-            <span>b</span>
-            <strong>{meta.b ?? '—'} Å</strong>
-          </div>
-          <div className="cell-param">
-            <span>c</span>
-            <strong>{meta.c ?? '—'} Å</strong>
-          </div>
-          <div className="cell-param">
-            <span>α</span>
-            <strong>{meta.alpha ?? '—'}°</strong>
-          </div>
-          <div className="cell-param">
-            <span>β</span>
-            <strong>{meta.beta ?? '—'}°</strong>
-          </div>
-          <div className="cell-param">
-            <span>γ</span>
-            <strong>{meta.gamma ?? '—'}°</strong>
-          </div>
+      <div className="crystal-cell-strip">
+        <div className="cell-param">
+          <span>a</span>
+          <strong>{meta.a ? `${meta.a} Å` : '—'}</strong>
         </div>
-      )}
+        <div className="cell-param">
+          <span>b</span>
+          <strong>{meta.b ? `${meta.b} Å` : '—'}</strong>
+        </div>
+        <div className="cell-param">
+          <span>c</span>
+          <strong>{meta.c ? `${meta.c} Å` : '—'}</strong>
+        </div>
+        <div className="cell-param">
+          <span>α</span>
+          <strong>{meta.alpha ? `${meta.alpha}°` : '—'}</strong>
+        </div>
+        <div className="cell-param">
+          <span>β</span>
+          <strong>{meta.beta ? `${meta.beta}°` : '—'}</strong>
+        </div>
+        <div className="cell-param">
+          <span>γ</span>
+          <strong>{meta.gamma ? `${meta.gamma}°` : '—'}</strong>
+        </div>
+      </div>
     </section>
   )
 }

@@ -77,53 +77,37 @@ body {
   padding: clamp(1.25rem, 2.5vw, 2.25rem) clamp(0.85rem, 2vw, 1.5rem) 3.5rem;
 }
 
-/* Responsive Workspace & Results Grids */
-.workspace-top-grid {
+/* Responsive Fixed Top Workspace & Results Grids */
+.workspace-fixed-grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 1.5rem;
-  align-items: start;
-  margin-bottom: 0.5rem;
-}
-
-.workspace-left-col {
-  display: grid;
-  grid-template-columns: 1fr 1.15fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
   gap: 1.5rem;
   align-items: stretch;
+  margin-bottom: 1.5rem;
 }
 
-.workspace-left-col > form,
-.workspace-left-col > section {
+.workspace-upload-col,
+.workspace-viewer-col {
   display: flex;
   flex-direction: column;
-}
-
-.workspace-left-col .card {
-  height: 100%;
-  margin-bottom: 0;
-}
-
-.workspace-top-grid.has-structure {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr);
-}
-
-.workspace-top-grid.has-structure .workspace-left-col {
-  grid-template-columns: 1fr;
-}
-
-.workspace-right-col {
-  position: sticky;
-  top: 1.25rem;
   min-width: 0;
 }
 
-.workspace-right-col .card {
+.workspace-upload-col .upload-card,
+.workspace-viewer-col .crystal-viewer-card {
+  height: 100%;
   margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.workspace-upload-col .dropzone {
+  flex: 1;
 }
 
 .results-stack {
-  margin-top: 1.5rem;
+  margin-top: 0;
 }
 
 .results-two-col {
@@ -139,16 +123,56 @@ body {
   height: 100%;
 }
 
-@media (max-width: 1120px) {
-  .workspace-left-col,
-  .workspace-top-grid.has-structure,
+@media (max-width: 1080px) {
+  .workspace-fixed-grid,
   .results-two-col {
     grid-template-columns: 1fr;
   }
+}
 
-  .workspace-right-col {
-    position: static;
-  }
+/* Collapsible Pipeline & Packages Card */
+.collapsible-guide {
+  padding: 1.25rem 1.65rem;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.collapsible-guide:hover {
+  border-color: rgba(12, 107, 125, 0.35);
+}
+
+.guide-collapse-trigger {
+  width: 100%;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.guide-trigger-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.guide-chevron {
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--accent);
+  padding: 0.34rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(12, 107, 125, 0.08);
+  border: 1px solid rgba(12, 107, 125, 0.2);
+}
+
+.guide-collapsible-body {
+  margin-top: 1.15rem;
+  padding-top: 1.15rem;
+  border-top: 1px solid var(--border-subtle);
 }
 
 /* 3D Crystal Viewer */
@@ -233,6 +257,47 @@ body {
   position: relative;
   width: 100%;
   height: 100%;
+}
+
+.crystal-empty-state {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  padding: 2rem;
+  text-align: center;
+  color: rgba(226, 232, 240, 0.88);
+  pointer-events: none;
+}
+
+.crystal-empty-state svg {
+  width: 58px;
+  height: 58px;
+  color: #5eead4;
+  opacity: 0.85;
+  margin-bottom: 0.25rem;
+}
+
+.crystal-empty-state strong {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  color: #f8fafc;
+}
+
+.crystal-empty-state span {
+  max-width: 340px;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: rgba(203, 213, 225, 0.8);
+}
+
+.pressure-pill:disabled,
+.crystal-chip-btn:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
 }
 
 .crystal-overlay-msg {

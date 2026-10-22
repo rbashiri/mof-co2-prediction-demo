@@ -93,6 +93,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<PredictResponse | null>(null)
   const [showFeatures, setShowFeatures] = useState(false)
+  const [showPipelineInfo, setShowPipelineInfo] = useState(false)
   const [selectedPressure, setSelectedPressure] = useState<string>('0.1')
   const [summaryLoading, setSummaryLoading] = useState(false)
   const [featureSearch, setFeatureSearch] = useState('')
@@ -194,132 +195,67 @@ export default function App() {
           </p>
         </header>
 
-        <div className={`workspace-top-grid ${file ? 'has-structure' : ''}`}>
-          <div className="workspace-left-col">
-            <form onSubmit={handleSubmit}>
-              <div className="card upload-card">
-                <div className="card-header-inline">
-                  <div>
-                    <span className="section-eyebrow">STRUCTURE INPUT</span>
-                    <h3>Upload Crystallographic Information File (.cif)</h3>
-                  </div>
-                  {file && (
-                    <span className="file-ready-pill">
-                      Ready for analysis · {(file.size / 1024).toFixed(1)} KB
-                    </span>
-                  )}
-                </div>
-
-                <label
-                  className={`dropzone ${dragOver ? 'dragover' : ''} ${file ? 'has-file' : ''}`}
-                  onDragOver={(e) => {
-                    e.preventDefault()
-                    setDragOver(true)
-                  }}
-                  onDragLeave={() => setDragOver(false)}
-                  onDrop={handleDrop}
-                >
-                  <input
-                    type="file"
-                    accept=".cif"
-                    onChange={handleFileChange}
-                    disabled={loading || summaryLoading}
-                    hidden
-                  />
-                  <div className="dropzone-icon" aria-hidden="true">
-                    <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.8">
-                      <path d="M24 6 39 14.5v19L24 42 9 33.5v-19L24 6Z" />
-                      <path d="M24 16v14M18 21l6-6 6 6" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </div>
-                  <div className="dropzone-title">Drag & drop a CIF file here, or click to browse</div>
-                  <div className="dropzone-subtitle">
-                    Instant 3D unit-cell preview + automatic Zeo++ & MOFid/RDKit/pymatgen extraction
-                  </div>
-                  {file && (
-                    <div className="file-name">
-                      <span className="file-name-icon" aria-hidden="true">◆</span>
-                      {file.name}
-                    </div>
-                  )}
-                </label>
-
-                <div className="actions">
-                  <button type="submit" className="btn" disabled={!file || loading || summaryLoading}>
-                    {loading ? 'Extracting & predicting…' : 'Extract descriptors and predict'}
-                  </button>
-                </div>
-              </div>
-            </form>
-
-            <section className="card prediction-guide" aria-labelledby="prediction-guide-title">
-              <div className="prediction-guide-heading">
+        {/* Fixed 2-Column Top Workspace: Upload on Left, 3D Visualizer Always on Right */}
+        <div className="workspace-fixed-grid">
+          <form onSubmit={handleSubmit} className="workspace-upload-col">
+            <div className="card upload-card">
+              <div className="card-header-inline">
                 <div>
-                  <span className="section-eyebrow">COMPUTATIONAL PIPELINE</span>
-                  <h2 id="prediction-guide-title">About these predictions</h2>
+                  <span className="section-eyebrow">STRUCTURE INPUT</span>
+                  <h3>Upload Crystallographic Information File (.cif)</h3>
                 </div>
-                <span className="model-estimates-badge">Model estimates · MVP</span>
+                {file && (
+                  <span className="file-ready-pill">
+                    Ready for analysis · {(file.size / 1024).toFixed(1)} KB
+                  </span>
+                )}
               </div>
-              <p className="prediction-guide-description">
-                Predict CO₂ uptake across five pressures (0.01 to 2.5 bar) using frozen XGBoost models trained on simulated hMOF structures.
-                Results are computational estimates, not experimental measurements.
-              </p>
-              <h3>Scientific tools behind the predictions</h3>
-              <div className="science-tools">
-                <div className="science-tool tool-geometry">
-                  <span className="tool-step">01</span>
-                  <div className="tool-icon-wrap">
-                    <svg viewBox="0 0 48 48" aria-hidden="true">
-                      <path d="m24 5 16 9v20l-16 9-16-9V14Zm0 0v19m16-10-16 10L8 14m16 10v19" />
-                    </svg>
-                  </div>
-                  <strong>Zeo++</strong>
-                  <span>Pore geometry (LCD, PLD, ASA, POAV)</span>
-                </div>
-                <div className="science-tool tool-linkers">
-                  <span className="tool-step">02</span>
-                  <div className="tool-icon-wrap">
-                    <svg viewBox="0 0 48 48" aria-hidden="true">
-                      <path d="m24 13-12 20m12-20 12 20M12 33h24" />
-                      <circle cx="24" cy="9" r="5" />
-                      <circle cx="10" cy="36" r="5" />
-                      <circle cx="38" cy="36" r="5" />
-                    </svg>
-                  </div>
-                  <strong>MOFid</strong>
-                  <span>Linker & node fragmentation</span>
-                </div>
-                <div className="science-tool tool-chemistry">
-                  <span className="tool-step">03</span>
-                  <div className="tool-icon-wrap">
-                    <svg viewBox="0 0 48 48" aria-hidden="true">
-                      <ellipse cx="24" cy="24" rx="20" ry="8" transform="rotate(45 24 24)" />
-                      <ellipse cx="24" cy="24" rx="20" ry="8" transform="rotate(-45 24 24)" />
-                      <circle cx="24" cy="24" r="3" />
-                    </svg>
-                  </div>
-                  <strong>RDKit</strong>
-                  <span>29 organic linker descriptors</span>
-                </div>
-                <div className="science-tool tool-materials">
-                  <span className="tool-step">04</span>
-                  <div className="tool-icon-wrap">
-                    <svg viewBox="0 0 48 48" aria-hidden="true">
-                      <path d="m24 5 10 6v12l-10 6-10-6V11Zm-10 18-10 6v12l10 5 10-5V29m10-18 10 6v12l-10 6-10-6" />
-                    </svg>
-                  </div>
-                  <strong>pymatgen</strong>
-                  <span>15 metal & unit-cell features</span>
-                </div>
-              </div>
-            </section>
-          </div>
 
-          {file && (
-            <div className="workspace-right-col">
-              <CrystalViewer file={file} />
+              <label
+                className={`dropzone ${dragOver ? 'dragover' : ''} ${file ? 'has-file' : ''}`}
+                onDragOver={(e) => {
+                  e.preventDefault()
+                  setDragOver(true)
+                }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={handleDrop}
+              >
+                <input
+                  type="file"
+                  accept=".cif"
+                  onChange={handleFileChange}
+                  disabled={loading || summaryLoading}
+                  hidden
+                />
+                <div className="dropzone-icon" aria-hidden="true">
+                  <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.8">
+                    <path d="M24 6 39 14.5v19L24 42 9 33.5v-19L24 6Z" />
+                    <path d="M24 16v14M18 21l6-6 6 6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+                <div className="dropzone-title">Drag & drop a CIF file here, or click to browse</div>
+                <div className="dropzone-subtitle">
+                  Instant 3D unit-cell preview + automatic Zeo++ & MOFid/RDKit/pymatgen extraction
+                </div>
+                {file && (
+                  <div className="file-name">
+                    <span className="file-name-icon" aria-hidden="true">◆</span>
+                    {file.name}
+                  </div>
+                )}
+              </label>
+
+              <div className="actions">
+                <button type="submit" className="btn" disabled={!file || loading || summaryLoading}>
+                  {loading ? 'Extracting & predicting…' : 'Extract descriptors and predict'}
+                </button>
+              </div>
             </div>
-          )}
+          </form>
+
+          <div className="workspace-viewer-col">
+            <CrystalViewer file={file} />
+          </div>
         </div>
 
         {loading && <PredictionProgress />}
@@ -330,57 +266,39 @@ export default function App() {
           </div>
         )}
 
+        {/* Main Prediction Summary, AI Interpretation, Uptake, SHAP, and Geometry right below */}
         {result && (
           <div className="results-stack">
-            <div className="card">
-              <div className="card-header-inline">
-                <div>
-                  <span className="section-eyebrow">PORE ARCHITECTURE</span>
-                  <h3>Geometry extracted by Zeo++</h3>
-                </div>
-                <span className="source-badge">
-                  {result.geometry_source === 'zeopp' ? 'Zeo++ 0.3 High-Accuracy' : 'Manual Geometry'}
-                </span>
-              </div>
-
-              <div className="geometry-bento">
-                {GEOMETRY_FIELDS.map(({ name, short, unit, desc }) => (
-                  <div className="geometry-stat-card" key={name}>
-                    <div className="geometry-stat-top">
-                      <span className="geometry-stat-short">{short}</span>
-                      <span className="geometry-stat-unit">{unit}</span>
-                    </div>
-                    <div className="geometry-stat-value">
-                      {Number(result.geometry[name].toPrecision(6)).toString()}
-                    </div>
-                    <div className="geometry-stat-desc">{desc}</div>
+            <div className="card gemini-card">
+              {!result.gemini_summary && (
+                <div className="gemini-cta-panel">
+                  <div>
+                    <span className="section-eyebrow">AI SCIENTIFIC NARRATION · OPTIONAL</span>
+                    <h3>Synthesize Structure–Property Insights</h3>
+                    <p className="about-body">
+                      Generate a concise scientific interpretation of the 5-pressure isotherm and endpoint SHAP
+                      attributions using Gemini. Only validated model outputs are shared—your CIF structure never leaves
+                      the server.
+                    </p>
                   </div>
-                ))}
-              </div>
-
-              <table className="feature-table">
-                <thead>
-                  <tr>
-                    <th>Descriptor</th>
-                    <th>Value</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {GEOMETRY_FIELDS.map(({ name, label }) => (
-                    <tr key={name}>
-                      <th scope="row">{label}</th>
-                      <td className="mono-cell">{Number(result.geometry[name].toPrecision(6)).toString()}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
-              {result.geometry_settings && (
-                <p className="about-body">
-                  Settings chosen by comparing Zeo++ geometry with reference values for 10 sample MOFs:{' '}
-                  <strong>{result.geometry_settings.surface_probe_radius_angstrom} Å</strong> probe for surface area and{' '}
-                  <strong>{result.geometry_settings.volume_probe_radius_angstrom} Å</strong> probe for void fraction.
+                  <div className="explanation-action">
+                    <button className="btn" onClick={explainResults} disabled={summaryLoading}>
+                      {summaryLoading ? 'Preparing your explanation...' : 'Click here to learn more about the results'}
+                    </button>
+                  </div>
+                </div>
+              )}
+              {summaryLoading && (
+                <p className="insights-status" role="status">
+                  <span aria-hidden="true">⌛</span>
+                  Preparing scientific insights from adsorption trends and SHAP results…
                 </p>
+              )}
+              {result.gemini_summary && <ScientificInterpretation text={result.gemini_summary} />}
+              {result.gemini_error && (
+                <div className="error" role="alert" style={{ marginTop: '1rem', marginBottom: 0 }}>
+                  Gemini summary unavailable: {result.gemini_error} Predictions and SHAP are unchanged.
+                </div>
               )}
             </div>
 
@@ -476,6 +394,58 @@ export default function App() {
             <div className="card">
               <div className="card-header-inline">
                 <div>
+                  <span className="section-eyebrow">PORE ARCHITECTURE</span>
+                  <h3>Geometry extracted by Zeo++</h3>
+                </div>
+                <span className="source-badge">
+                  {result.geometry_source === 'zeopp' ? 'Zeo++ 0.3 High-Accuracy' : 'Manual Geometry'}
+                </span>
+              </div>
+
+              <div className="geometry-bento">
+                {GEOMETRY_FIELDS.map(({ name, short, unit, desc }) => (
+                  <div className="geometry-stat-card" key={name}>
+                    <div className="geometry-stat-top">
+                      <span className="geometry-stat-short">{short}</span>
+                      <span className="geometry-stat-unit">{unit}</span>
+                    </div>
+                    <div className="geometry-stat-value">
+                      {Number(result.geometry[name].toPrecision(6)).toString()}
+                    </div>
+                    <div className="geometry-stat-desc">{desc}</div>
+                  </div>
+                ))}
+              </div>
+
+              <table className="feature-table">
+                <thead>
+                  <tr>
+                    <th>Descriptor</th>
+                    <th>Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {GEOMETRY_FIELDS.map(({ name, label }) => (
+                    <tr key={name}>
+                      <th scope="row">{label}</th>
+                      <td className="mono-cell">{Number(result.geometry[name].toPrecision(6)).toString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {result.geometry_settings && (
+                <p className="about-body">
+                  Settings chosen by comparing Zeo++ geometry with reference values for 10 sample MOFs:{' '}
+                  <strong>{result.geometry_settings.surface_probe_radius_angstrom} Å</strong> probe for surface area and{' '}
+                  <strong>{result.geometry_settings.volume_probe_radius_angstrom} Å</strong> probe for void fraction.
+                </p>
+              )}
+            </div>
+
+            <div className="card">
+              <div className="card-header-inline" style={{ marginBottom: showFeatures ? '1rem' : 0 }}>
+                <div>
                   <span className="section-eyebrow">COMPLETE FEATURE VECTOR</span>
                   <h3>48 Phase 3 Model B Descriptors</h3>
                 </div>
@@ -498,41 +468,87 @@ export default function App() {
                 )}
               </div>
             </div>
-
-            <div className="card gemini-card">
-              {!result.gemini_summary && (
-                <div className="gemini-cta-panel">
-                  <div>
-                    <span className="section-eyebrow">AI SCIENTIFIC NARRATION · OPTIONAL</span>
-                    <h3>Synthesize Structure–Property Insights</h3>
-                    <p className="about-body">
-                      Generate a concise scientific interpretation of the 5-pressure isotherm and endpoint SHAP
-                      attributions using Gemini. Only validated model outputs are shared—your CIF structure never leaves
-                      the server.
-                    </p>
-                  </div>
-                  <div className="explanation-action">
-                    <button className="btn" onClick={explainResults} disabled={summaryLoading}>
-                      {summaryLoading ? 'Preparing your explanation...' : 'Click here to learn more about the results'}
-                    </button>
-                  </div>
-                </div>
-              )}
-              {summaryLoading && (
-                <p className="insights-status" role="status">
-                  <span aria-hidden="true">⌛</span>
-                  Preparing scientific insights from adsorption trends and SHAP results…
-                </p>
-              )}
-              {result.gemini_summary && <ScientificInterpretation text={result.gemini_summary} />}
-              {result.gemini_error && (
-                <div className="error" role="alert" style={{ marginTop: '1rem', marginBottom: 0 }}>
-                  Gemini summary unavailable: {result.gemini_error} Predictions and SHAP are unchanged.
-                </div>
-              )}
-            </div>
           </div>
         )}
+
+        {/* Collapsible Model & Scientific Tools Card (below main workspace & results) */}
+        <section className="card prediction-guide collapsible-guide" aria-labelledby="prediction-guide-title">
+          <button
+            type="button"
+            className="guide-collapse-trigger"
+            aria-expanded={showPipelineInfo}
+            aria-controls="prediction-guide-content"
+            onClick={() => setShowPipelineInfo((v) => !v)}
+          >
+            <div className="prediction-guide-heading">
+              <div>
+                <span className="section-eyebrow">COMPUTATIONAL PIPELINE & PACKAGES</span>
+                <h2 id="prediction-guide-title">About these predictions & scientific tools</h2>
+              </div>
+              <div className="guide-trigger-right">
+                <span className="model-estimates-badge">Model estimates · MVP</span>
+                <span className="guide-chevron">
+                  {showPipelineInfo ? 'Hide details ▲' : 'Click to view packages & model info ▼'}
+                </span>
+              </div>
+            </div>
+          </button>
+
+          <div id="prediction-guide-content" hidden={!showPipelineInfo} className="guide-collapsible-body">
+            <p className="prediction-guide-description">
+              Predict CO₂ uptake across five pressures (0.01 to 2.5 bar) using frozen XGBoost models trained on simulated
+              hMOF structures. Results are computational estimates, not experimental measurements.
+            </p>
+            <h3>Scientific tools behind the predictions</h3>
+            <div className="science-tools">
+              <div className="science-tool tool-geometry">
+                <span className="tool-step">01</span>
+                <div className="tool-icon-wrap">
+                  <svg viewBox="0 0 48 48" aria-hidden="true">
+                    <path d="m24 5 16 9v20l-16 9-16-9V14Zm0 0v19m16-10-16 10L8 14m16 10v19" />
+                  </svg>
+                </div>
+                <strong>Zeo++</strong>
+                <span>Pore geometry (LCD, PLD, ASA, POAV)</span>
+              </div>
+              <div className="science-tool tool-linkers">
+                <span className="tool-step">02</span>
+                <div className="tool-icon-wrap">
+                  <svg viewBox="0 0 48 48" aria-hidden="true">
+                    <path d="m24 13-12 20m12-20 12 20M12 33h24" />
+                    <circle cx="24" cy="9" r="5" />
+                    <circle cx="10" cy="36" r="5" />
+                    <circle cx="38" cy="36" r="5" />
+                  </svg>
+                </div>
+                <strong>MOFid</strong>
+                <span>Linker & node fragmentation</span>
+              </div>
+              <div className="science-tool tool-chemistry">
+                <span className="tool-step">03</span>
+                <div className="tool-icon-wrap">
+                  <svg viewBox="0 0 48 48" aria-hidden="true">
+                    <ellipse cx="24" cy="24" rx="20" ry="8" transform="rotate(45 24 24)" />
+                    <ellipse cx="24" cy="24" rx="20" ry="8" transform="rotate(-45 24 24)" />
+                    <circle cx="24" cy="24" r="3" />
+                  </svg>
+                </div>
+                <strong>RDKit</strong>
+                <span>29 organic linker descriptors</span>
+              </div>
+              <div className="science-tool tool-materials">
+                <span className="tool-step">04</span>
+                <div className="tool-icon-wrap">
+                  <svg viewBox="0 0 48 48" aria-hidden="true">
+                    <path d="m24 5 10 6v12l-10 6-10-6V11Zm-10 18-10 6v12l10 5 10-5V29m10-18 10 6v12l-10 6-10-6" />
+                  </svg>
+                </div>
+                <strong>pymatgen</strong>
+                <span>15 metal & unit-cell features</span>
+              </div>
+            </div>
+          </div>
+        </section>
 
         <TeamContact />
       </div>
