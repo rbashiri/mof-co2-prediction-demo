@@ -96,6 +96,13 @@ def load_app_settings() -> dict:
     ):
         raise ValueError("app.models must specify a model file for each of the five pressures.")
     timeout = settings.get("extraction_timeout_seconds")
+    env_timeout = os.environ.get("MOF_EXTRACTION_TIMEOUT_SECONDS")
+    if env_timeout is not None:
+        try:
+            timeout = float(env_timeout)
+        except ValueError as exc:
+            raise ValueError("MOF_EXTRACTION_TIMEOUT_SECONDS must be finite and positive.") from exc
+        settings["extraction_timeout_seconds"] = timeout
     if (
         isinstance(timeout, bool)
         or not isinstance(timeout, (int, float))

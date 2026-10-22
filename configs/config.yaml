@@ -19,4 +19,4 @@ app:
     "2.5": phase_3_model_b_geometry_plus_linkers_plus_cif_2.5bar.joblib
   # Set an executable path here, use MOF_SBU_PATH, or put sbu on PATH.
   sbu_path: null
-  extraction_timeout_seconds: 120
+  extraction_timeout_seconds: 300

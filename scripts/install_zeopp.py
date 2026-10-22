@@ -21,7 +21,7 @@ def make_commands() -> tuple[list[str], list[str]]:
             raise FileNotFoundError(f"Required build tool is missing: {tool}")
     return (
         ["make", "CFLAGS=-Wall -ansi -pedantic -O3 -ffp-contract=off"],
-        ["make", "CFLAGS=-g -ffp-contract=off"],
+        ["make", "CFLAGS=-O3 -ffp-contract=off"],
     )
 
 
