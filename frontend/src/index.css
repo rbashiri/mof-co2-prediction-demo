@@ -389,6 +389,7 @@ body {
 
 /* Hero Header */
 .hero-header {
+  position: relative;
   text-align: center;
   margin-bottom: 2rem;
   padding: 2.4rem 1.75rem 2.3rem;
@@ -400,6 +401,24 @@ body {
     0 18px 45px rgba(13, 43, 54, 0.06),
     inset 0 1px 0 rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(12px);
+}
+
+.hero-top-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.35rem;
+}
+
+@media print {
+  .hero-top-actions,
+  .ambient-glow {
+    display: none !important;
+  }
+
+  .card {
+    break-inside: avoid;
+    box-shadow: none;
+  }
 }
 
 .hero-badge-row {

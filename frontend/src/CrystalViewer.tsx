@@ -139,6 +139,14 @@ export default function CrystalViewer({ file }: { file: File | null }) {
 
       viewer.zoomTo()
       viewer.render()
+      ;(el as HTMLDivElement & { __capturePng?: () => string }).__capturePng = () => {
+        try {
+          viewer.render()
+          return viewer.pngURI()
+        } catch {
+          return ''
+        }
+      }
       viewer.spin(spinning ? 'y' : false, 0.5)
       setViewerError(null)
     } catch (err) {

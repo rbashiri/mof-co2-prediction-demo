@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import html2canvas from 'html2canvas'
+import { jsPDF } from 'jspdf'
 import CrystalViewer from './CrystalViewer'
 import TeamContact from './TeamContact'
 
@@ -96,7 +98,9 @@ export default function App() {
   const [showPipelineInfo, setShowPipelineInfo] = useState(false)
   const [selectedPressure, setSelectedPressure] = useState<string>('0.1')
   const [summaryLoading, setSummaryLoading] = useState(false)
+  const [pdfExporting, setPdfExporting] = useState(false)
   const [featureSearch, setFeatureSearch] = useState('')
+  const pageRef = useRef<HTMLDivElement | null>(null)
 
   const selectFile = (nextFile: File) => {
     setFile(nextFile)
@@ -170,6 +174,61 @@ export default function App() {
     URL.revokeObjectURL(url)
   }
 
+  const exportPdf = async () => {
+    if (!pageRef.current || pdfExporting) return
+    setPdfExporting(true)
+    try {
+      const stageEl = pageRef.current.querySelector('.crystal-stage') as
+        | (HTMLDivElement & { __capturePng?: () => string })
+        | null
+      const crystalDataUri = stageEl?.__capturePng ? stageEl.__capturePng() : ''
+
+      const canvas = await html2canvas(pageRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#f1f6f8',
+        logging: false,
+        onclone: (clonedDoc) => {
+          const clonedH1 = clonedDoc.querySelector('.hero-header h1') as HTMLElement | null
+          if (clonedH1) {
+            clonedH1.style.background = 'none'
+            clonedH1.style.webkitTextFillColor = '#093845'
+            clonedH1.style.color = '#093845'
+          }
+          if (crystalDataUri) {
+            const clonedStage = clonedDoc.querySelector('.crystal-stage') as HTMLElement | null
+            if (clonedStage) {
+              clonedStage.innerHTML = ''
+              const img = clonedDoc.createElement('img')
+              img.src = crystalDataUri
+              img.style.width = '100%'
+              img.style.height = '100%'
+              img.style.objectFit = 'contain'
+              img.style.display = 'block'
+              clonedStage.appendChild(img)
+            }
+          }
+        },
+      })
+
+      const imgData = canvas.toDataURL('image/jpeg', 0.94)
+      const pdfWidth = 1080
+      const pdfHeight = Math.round((canvas.height * pdfWidth) / canvas.width)
+      const pdf = new jsPDF({
+        orientation: pdfHeight > pdfWidth ? 'portrait' : 'landscape',
+        unit: 'px',
+        format: [pdfWidth, pdfHeight],
+      })
+      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight)
+      const baseName = file ? file.name.replace(/\.cif$/i, '') : 'workspace'
+      pdf.save(`PRISM-${baseName}-report.pdf`)
+    } catch {
+      window.print()
+    } finally {
+      setPdfExporting(false)
+    }
+  }
+
   const maxUptake = result ? Math.max(...result.pressures.map((p) => p.uptake), 0.001) : 1
 
   return (
@@ -177,8 +236,18 @@ export default function App() {
       <div className="ambient-glow ambient-glow-left" aria-hidden="true" />
       <div className="ambient-glow ambient-glow-right" aria-hidden="true" />
 
-      <div className="container">
+      <div className="container" ref={pageRef}>
         <header className="hero-header">
+          <div className="hero-top-actions">
+            <button
+              type="button"
+              className="btn btn-secondary btn-compact"
+              onClick={exportPdf}
+              disabled={pdfExporting}
+            >
+              {pdfExporting ? 'Generating PDF…' : '⤓ Export Page as PDF'}
+            </button>
+          </div>
           <h1>PRISM</h1>
           <p className="header-expansion">Pore Regression &amp; Interpretability for Simulated MOFs</p>
           <p className="header-subtitle">
@@ -345,6 +414,9 @@ export default function App() {
                 <div className="actions">
                   <button className="btn btn-secondary" onClick={downloadCsv}>
                     Download predictions CSV
+                  </button>
+                  <button className="btn btn-secondary" onClick={exportPdf} disabled={pdfExporting}>
+                    {pdfExporting ? 'Generating PDF…' : 'Export Page as PDF'}
                   </button>
                 </div>
               </div>
