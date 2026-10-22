@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import CrystalViewer from './CrystalViewer'
 import TeamContact from './TeamContact'
 
 interface PressurePoint {
@@ -193,123 +194,133 @@ export default function App() {
           </p>
         </header>
 
-        <section className="card prediction-guide" aria-labelledby="prediction-guide-title">
-          <div className="prediction-guide-heading">
-            <div>
-              <span className="section-eyebrow">COMPUTATIONAL PIPELINE</span>
-              <h2 id="prediction-guide-title">About these predictions</h2>
-            </div>
-            <span className="model-estimates-badge">Model estimates · MVP</span>
-          </div>
-          <p className="prediction-guide-description">
-            Predict CO₂ uptake across five pressures (0.01 to 2.5 bar) using frozen XGBoost models trained on simulated hMOF structures.
-            Results are computational estimates, not experimental measurements.
-          </p>
-          <h3>Scientific tools behind the predictions</h3>
-          <div className="science-tools">
-            <div className="science-tool tool-geometry">
-              <span className="tool-step">01</span>
-              <div className="tool-icon-wrap">
-                <svg viewBox="0 0 48 48" aria-hidden="true">
-                  <path d="m24 5 16 9v20l-16 9-16-9V14Zm0 0v19m16-10-16 10L8 14m16 10v19" />
-                </svg>
-              </div>
-              <strong>Zeo++</strong>
-              <span>Pore geometry (LCD, PLD, ASA, POAV)</span>
-            </div>
-            <div className="science-tool tool-linkers">
-              <span className="tool-step">02</span>
-              <div className="tool-icon-wrap">
-                <svg viewBox="0 0 48 48" aria-hidden="true">
-                  <path d="m24 13-12 20m12-20 12 20M12 33h24" />
-                  <circle cx="24" cy="9" r="5" />
-                  <circle cx="10" cy="36" r="5" />
-                  <circle cx="38" cy="36" r="5" />
-                </svg>
-              </div>
-              <strong>MOFid</strong>
-              <span>Linker & node fragmentation</span>
-            </div>
-            <div className="science-tool tool-chemistry">
-              <span className="tool-step">03</span>
-              <div className="tool-icon-wrap">
-                <svg viewBox="0 0 48 48" aria-hidden="true">
-                  <ellipse cx="24" cy="24" rx="20" ry="8" transform="rotate(45 24 24)" />
-                  <ellipse cx="24" cy="24" rx="20" ry="8" transform="rotate(-45 24 24)" />
-                  <circle cx="24" cy="24" r="3" />
-                </svg>
-              </div>
-              <strong>RDKit</strong>
-              <span>29 organic linker descriptors</span>
-            </div>
-            <div className="science-tool tool-materials">
-              <span className="tool-step">04</span>
-              <div className="tool-icon-wrap">
-                <svg viewBox="0 0 48 48" aria-hidden="true">
-                  <path d="m24 5 10 6v12l-10 6-10-6V11Zm-10 18-10 6v12l10 5 10-5V29m10-18 10 6v12l-10 6-10-6" />
-                </svg>
-              </div>
-              <strong>pymatgen</strong>
-              <span>15 metal & unit-cell features</span>
-            </div>
-          </div>
-        </section>
-
-        <form onSubmit={handleSubmit}>
-          <div className="card upload-card">
-            <div className="card-header-inline">
-              <div>
-                <span className="section-eyebrow">STRUCTURE INPUT</span>
-                <h3>Upload Crystallographic Information File (.cif)</h3>
-              </div>
-              {file && (
-                <span className="file-ready-pill">
-                  Ready for analysis · {(file.size / 1024).toFixed(1)} KB
-                </span>
-              )}
-            </div>
-
-            <label
-              className={`dropzone ${dragOver ? 'dragover' : ''} ${file ? 'has-file' : ''}`}
-              onDragOver={(e) => {
-                e.preventDefault()
-                setDragOver(true)
-              }}
-              onDragLeave={() => setDragOver(false)}
-              onDrop={handleDrop}
-            >
-              <input
-                type="file"
-                accept=".cif"
-                onChange={handleFileChange}
-                disabled={loading || summaryLoading}
-                hidden
-              />
-              <div className="dropzone-icon" aria-hidden="true">
-                <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.8">
-                  <path d="M24 6 39 14.5v19L24 42 9 33.5v-19L24 6Z" />
-                  <path d="M24 16v14M18 21l6-6 6 6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </div>
-              <div className="dropzone-title">Drag & drop a CIF file here, or click to browse</div>
-              <div className="dropzone-subtitle">
-                Automatic Zeo++ geometry + MOFid/RDKit/pymatgen descriptor extraction
-              </div>
-              {file && (
-                <div className="file-name">
-                  <span className="file-name-icon" aria-hidden="true">◆</span>
-                  {file.name}
+        <div className={`workspace-top-grid ${file ? 'has-structure' : ''}`}>
+          <div className="workspace-left-col">
+            <form onSubmit={handleSubmit}>
+              <div className="card upload-card">
+                <div className="card-header-inline">
+                  <div>
+                    <span className="section-eyebrow">STRUCTURE INPUT</span>
+                    <h3>Upload Crystallographic Information File (.cif)</h3>
+                  </div>
+                  {file && (
+                    <span className="file-ready-pill">
+                      Ready for analysis · {(file.size / 1024).toFixed(1)} KB
+                    </span>
+                  )}
                 </div>
-              )}
-            </label>
 
-            <div className="actions">
-              <button type="submit" className="btn" disabled={!file || loading || summaryLoading}>
-                {loading ? 'Extracting & predicting…' : 'Extract descriptors and predict'}
-              </button>
-            </div>
+                <label
+                  className={`dropzone ${dragOver ? 'dragover' : ''} ${file ? 'has-file' : ''}`}
+                  onDragOver={(e) => {
+                    e.preventDefault()
+                    setDragOver(true)
+                  }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={handleDrop}
+                >
+                  <input
+                    type="file"
+                    accept=".cif"
+                    onChange={handleFileChange}
+                    disabled={loading || summaryLoading}
+                    hidden
+                  />
+                  <div className="dropzone-icon" aria-hidden="true">
+                    <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.8">
+                      <path d="M24 6 39 14.5v19L24 42 9 33.5v-19L24 6Z" />
+                      <path d="M24 16v14M18 21l6-6 6 6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                  <div className="dropzone-title">Drag & drop a CIF file here, or click to browse</div>
+                  <div className="dropzone-subtitle">
+                    Instant 3D unit-cell preview + automatic Zeo++ & MOFid/RDKit/pymatgen extraction
+                  </div>
+                  {file && (
+                    <div className="file-name">
+                      <span className="file-name-icon" aria-hidden="true">◆</span>
+                      {file.name}
+                    </div>
+                  )}
+                </label>
+
+                <div className="actions">
+                  <button type="submit" className="btn" disabled={!file || loading || summaryLoading}>
+                    {loading ? 'Extracting & predicting…' : 'Extract descriptors and predict'}
+                  </button>
+                </div>
+              </div>
+            </form>
+
+            <section className="card prediction-guide" aria-labelledby="prediction-guide-title">
+              <div className="prediction-guide-heading">
+                <div>
+                  <span className="section-eyebrow">COMPUTATIONAL PIPELINE</span>
+                  <h2 id="prediction-guide-title">About these predictions</h2>
+                </div>
+                <span className="model-estimates-badge">Model estimates · MVP</span>
+              </div>
+              <p className="prediction-guide-description">
+                Predict CO₂ uptake across five pressures (0.01 to 2.5 bar) using frozen XGBoost models trained on simulated hMOF structures.
+                Results are computational estimates, not experimental measurements.
+              </p>
+              <h3>Scientific tools behind the predictions</h3>
+              <div className="science-tools">
+                <div className="science-tool tool-geometry">
+                  <span className="tool-step">01</span>
+                  <div className="tool-icon-wrap">
+                    <svg viewBox="0 0 48 48" aria-hidden="true">
+                      <path d="m24 5 16 9v20l-16 9-16-9V14Zm0 0v19m16-10-16 10L8 14m16 10v19" />
+                    </svg>
+                  </div>
+                  <strong>Zeo++</strong>
+                  <span>Pore geometry (LCD, PLD, ASA, POAV)</span>
+                </div>
+                <div className="science-tool tool-linkers">
+                  <span className="tool-step">02</span>
+                  <div className="tool-icon-wrap">
+                    <svg viewBox="0 0 48 48" aria-hidden="true">
+                      <path d="m24 13-12 20m12-20 12 20M12 33h24" />
+                      <circle cx="24" cy="9" r="5" />
+                      <circle cx="10" cy="36" r="5" />
+                      <circle cx="38" cy="36" r="5" />
+                    </svg>
+                  </div>
+                  <strong>MOFid</strong>
+                  <span>Linker & node fragmentation</span>
+                </div>
+                <div className="science-tool tool-chemistry">
+                  <span className="tool-step">03</span>
+                  <div className="tool-icon-wrap">
+                    <svg viewBox="0 0 48 48" aria-hidden="true">
+                      <ellipse cx="24" cy="24" rx="20" ry="8" transform="rotate(45 24 24)" />
+                      <ellipse cx="24" cy="24" rx="20" ry="8" transform="rotate(-45 24 24)" />
+                      <circle cx="24" cy="24" r="3" />
+                    </svg>
+                  </div>
+                  <strong>RDKit</strong>
+                  <span>29 organic linker descriptors</span>
+                </div>
+                <div className="science-tool tool-materials">
+                  <span className="tool-step">04</span>
+                  <div className="tool-icon-wrap">
+                    <svg viewBox="0 0 48 48" aria-hidden="true">
+                      <path d="m24 5 10 6v12l-10 6-10-6V11Zm-10 18-10 6v12l10 5 10-5V29m10-18 10 6v12l-10 6-10-6" />
+                    </svg>
+                  </div>
+                  <strong>pymatgen</strong>
+                  <span>15 metal & unit-cell features</span>
+                </div>
+              </div>
+            </section>
           </div>
-        </form>
+
+          {file && (
+            <div className="workspace-right-col">
+              <CrystalViewer file={file} />
+            </div>
+          )}
+        </div>
 
         {loading && <PredictionProgress />}
 
@@ -373,91 +384,93 @@ export default function App() {
               )}
             </div>
 
-            <div className="card">
-              <div className="card-header-inline">
-                <div>
-                  <span className="section-eyebrow">ADSORPTION ISOTHERM</span>
-                  <h3>Predicted CO₂ uptake</h3>
-                </div>
-                <button className="btn btn-secondary btn-compact" onClick={downloadCsv}>
-                  ↓ Download predictions CSV
-                </button>
-              </div>
-
-              {result.pressures.some((point) => point.uptake < 0) && (
-                <p role="alert" className="about-body warning-callout">
-                  The model returned negative uptake, which is not physically meaningful. Values are shown unchanged; do
-                  not treat these predictions as validated.
-                </p>
-              )}
-
-              <div className="metric-grid">
-                {result.pressures.map((p) => {
-                  const ratio = Math.max(0, Math.min(100, (p.uptake / maxUptake) * 100))
-                  return (
-                    <div className="metric" key={p.pressure}>
-                      <div className="metric-label">{p.pressure} bar</div>
-                      <div className="metric-value">{p.uptake.toFixed(3)}</div>
-                      <div className="metric-unit">mol / kg</div>
-                      <div className="metric-bar-track" aria-hidden="true">
-                        <div className="metric-bar-fill" style={{ width: `${ratio}%` }} />
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-
-              <UptakeTable data={result.pressures} />
-              <PressureCurve data={result.pressures} />
-
-              <div className="actions">
-                <button className="btn btn-secondary" onClick={downloadCsv}>
-                  Download predictions CSV
-                </button>
-              </div>
-            </div>
-
-            <div className="card">
-              <div className="card-header-inline">
-                <div>
-                  <span className="section-eyebrow">MODEL INTERPRETABILITY</span>
-                  <h3>SHAP explanation</h3>
-                </div>
-                <div className="shap-controls">
-                  <label htmlFor="pressure">Pressure:</label>
-                  <div className="pressure-pill-group" role="group" aria-label="Quick select pressure">
-                    {PRESSURES.map((p) => {
-                      const val = String(p)
-                      return (
-                        <button
-                          key={p}
-                          type="button"
-                          className={`pressure-pill ${selectedPressure === val ? 'active' : ''}`}
-                          onClick={() => setSelectedPressure(val)}
-                        >
-                          {p} bar
-                        </button>
-                      )
-                    })}
+            <div className="results-two-col">
+              <div className="card">
+                <div className="card-header-inline">
+                  <div>
+                    <span className="section-eyebrow">ADSORPTION ISOTHERM</span>
+                    <h3>Predicted CO₂ uptake</h3>
                   </div>
-                  <select
-                    id="pressure"
-                    value={selectedPressure}
-                    onChange={(e) => setSelectedPressure(e.target.value)}
-                  >
-                    {PRESSURES.map((p) => (
-                      <option key={p} value={String(p)}>
-                        {p} bar
-                      </option>
-                    ))}
-                  </select>
+                  <button className="btn btn-secondary btn-compact" onClick={downloadCsv}>
+                    ↓ Download predictions CSV
+                  </button>
+                </div>
+
+                {result.pressures.some((point) => point.uptake < 0) && (
+                  <p role="alert" className="about-body warning-callout">
+                    The model returned negative uptake, which is not physically meaningful. Values are shown unchanged; do
+                    not treat these predictions as validated.
+                  </p>
+                )}
+
+                <div className="metric-grid">
+                  {result.pressures.map((p) => {
+                    const ratio = Math.max(0, Math.min(100, (p.uptake / maxUptake) * 100))
+                    return (
+                      <div className="metric" key={p.pressure}>
+                        <div className="metric-label">{p.pressure} bar</div>
+                        <div className="metric-value">{p.uptake.toFixed(3)}</div>
+                        <div className="metric-unit">mol / kg</div>
+                        <div className="metric-bar-track" aria-hidden="true">
+                          <div className="metric-bar-fill" style={{ width: `${ratio}%` }} />
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                <UptakeTable data={result.pressures} />
+                <PressureCurve data={result.pressures} />
+
+                <div className="actions">
+                  <button className="btn btn-secondary" onClick={downloadCsv}>
+                    Download predictions CSV
+                  </button>
                 </div>
               </div>
 
-              <ShapChart data={result.shap[selectedPressure]} />
-              <p className="shap-disclaimer">
-                SHAP describes model contributions relative to the pressure model’s baseline, not proven chemical mechanisms.
-              </p>
+              <div className="card">
+                <div className="card-header-inline">
+                  <div>
+                    <span className="section-eyebrow">MODEL INTERPRETABILITY</span>
+                    <h3>SHAP explanation</h3>
+                  </div>
+                  <div className="shap-controls">
+                    <label htmlFor="pressure">Pressure:</label>
+                    <div className="pressure-pill-group" role="group" aria-label="Quick select pressure">
+                      {PRESSURES.map((p) => {
+                        const val = String(p)
+                        return (
+                          <button
+                            key={p}
+                            type="button"
+                            className={`pressure-pill ${selectedPressure === val ? 'active' : ''}`}
+                            onClick={() => setSelectedPressure(val)}
+                          >
+                            {p} bar
+                          </button>
+                        )
+                      })}
+                    </div>
+                    <select
+                      id="pressure"
+                      value={selectedPressure}
+                      onChange={(e) => setSelectedPressure(e.target.value)}
+                    >
+                      {PRESSURES.map((p) => (
+                        <option key={p} value={String(p)}>
+                          {p} bar
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <ShapChart data={result.shap[selectedPressure]} />
+                <p className="shap-disclaimer">
+                  SHAP describes model contributions relative to the pressure model’s baseline, not proven chemical mechanisms.
+                </p>
+              </div>
             </div>
 
             <div className="card">
@@ -750,11 +763,11 @@ function ShapChart({ data }: { data: ShapData | undefined }) {
   if (!data) return null
 
   const maxAbs = Math.max(...rows.map((r) => Math.abs(r.contribution)), 1e-9)
-  const width = 900
+  const width = 680
   const height = rows.length * 34 + 70
-  const barMax = 180
-  const labelEnd = 390
-  const zeroX = 595
+  const barMax = 135
+  const labelEnd = 260
+  const zeroX = 430
 
   return (
     <div className="chart-scroll" role="region" aria-label="Selected pressure SHAP chart" tabIndex={0}>

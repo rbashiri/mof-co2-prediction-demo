@@ -72,9 +72,254 @@ body {
 .container {
   position: relative;
   z-index: 1;
-  max-width: 1140px;
+  max-width: min(1440px, 96vw);
   margin: 0 auto;
-  padding: 2.25rem 1.25rem 3.5rem;
+  padding: clamp(1.25rem, 2.5vw, 2.25rem) clamp(0.85rem, 2vw, 1.5rem) 3.5rem;
+}
+
+/* Responsive Workspace & Results Grids */
+.workspace-top-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  align-items: start;
+  margin-bottom: 0.5rem;
+}
+
+.workspace-left-col {
+  display: grid;
+  grid-template-columns: 1fr 1.15fr;
+  gap: 1.5rem;
+  align-items: stretch;
+}
+
+.workspace-left-col > form,
+.workspace-left-col > section {
+  display: flex;
+  flex-direction: column;
+}
+
+.workspace-left-col .card {
+  height: 100%;
+  margin-bottom: 0;
+}
+
+.workspace-top-grid.has-structure {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr);
+}
+
+.workspace-top-grid.has-structure .workspace-left-col {
+  grid-template-columns: 1fr;
+}
+
+.workspace-right-col {
+  position: sticky;
+  top: 1.25rem;
+  min-width: 0;
+}
+
+.workspace-right-col .card {
+  margin-bottom: 0;
+}
+
+.results-stack {
+  margin-top: 1.5rem;
+}
+
+.results-two-col {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: 1.5rem;
+  align-items: start;
+  margin-bottom: 1.5rem;
+}
+
+.results-two-col > .card {
+  margin-bottom: 0;
+  height: 100%;
+}
+
+@media (max-width: 1120px) {
+  .workspace-left-col,
+  .workspace-top-grid.has-structure,
+  .results-two-col {
+    grid-template-columns: 1fr;
+  }
+
+  .workspace-right-col {
+    position: static;
+  }
+}
+
+/* 3D Crystal Viewer */
+.crystal-viewer-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.95rem;
+}
+
+.crystal-header {
+  margin-bottom: 0 !important;
+}
+
+.crystal-badges {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.crystal-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.crystal-style-pills {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+  background: #eaf2f5;
+  padding: 0.24rem;
+  border-radius: 999px;
+  border: 1px solid var(--surface-2);
+}
+
+.crystal-toggle-group {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.crystal-chip-btn {
+  border: 1px solid var(--surface-2);
+  background: #ffffff;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  font-weight: 600;
+  padding: 0.36rem 0.72rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.crystal-chip-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.crystal-chip-btn.active {
+  background: rgba(12, 107, 125, 0.1);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.crystal-stage-wrap {
+  position: relative;
+  width: 100%;
+  height: clamp(340px, 46vh, 480px);
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid #1e4656;
+  background: radial-gradient(circle at 50% 40%, #133544 0%, #091c24 100%);
+  box-shadow: inset 0 2px 16px rgba(0, 0, 0, 0.35);
+}
+
+.crystal-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.crystal-overlay-msg {
+  position: absolute;
+  inset: 1rem;
+  display: grid;
+  place-items: center;
+  background: rgba(9, 28, 36, 0.85);
+  color: #fecdd3;
+  font-size: 0.9rem;
+  border-radius: 10px;
+  padding: 1rem;
+  text-align: center;
+}
+
+.crystal-hud {
+  position: absolute;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: 0.65rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.38rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(9, 28, 36, 0.74);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(241, 245, 249, 0.86);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+}
+
+.crystal-hud-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.crystal-hud-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+}
+
+.crystal-hud-legend i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+}
+
+.crystal-cell-strip {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.cell-param {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.45rem 0.35rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  background: #f8fbfc;
+  font-family: var(--font-mono);
+}
+
+.cell-param span {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
+.cell-param strong {
+  font-size: 0.8rem;
+  color: var(--text);
+}
+
+@media (max-width: 640px) {
+  .crystal-cell-strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 /* Hero Header */
@@ -681,7 +926,7 @@ body {
 .pressure-curve {
   display: block;
   width: 100%;
-  min-width: 620px;
+  min-width: 460px;
   height: auto;
   margin-top: 0.75rem;
 }
@@ -697,7 +942,7 @@ body {
 .shap-chart {
   display: block;
   width: 100%;
-  min-width: 860px;
+  min-width: 520px;
   height: auto;
 }
 
