@@ -1,9 +1,5 @@
 # Hackathon tasks and ownership
 
-Prepared: October 10, 2026.
-Target: a working, presentation-ready setup by **Saturday, October 17, 2026**.
-Confirm the rehearsal time and timezone at the kickoff meeting.
-
 ## Repository checkpoint
 
 GitHub and local `main` matched at `6ba883e` when this plan was prepared.
